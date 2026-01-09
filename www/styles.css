@@ -1,0 +1,363 @@
+/* XLS-Validator Custom Styles */
+
+/* ===== General ===== */
+:root {
+  --xls-primary: #2c3e50;
+  --xls-success: #18bc9c;
+  --xls-warning: #f39c12;
+  --xls-danger: #e74c3c;
+  --xls-info: #3498db;
+  --xls-muted: #95a5a6;
+}
+
+body {
+  background-color: #f8f9fa;
+}
+
+/* ===== Cards ===== */
+.card {
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  margin-bottom: 1rem;
+}
+
+.card-header {
+  background-color: #fff;
+  border-bottom: 1px solid #eee;
+  font-weight: 600;
+}
+
+/* ===== Upload Module ===== */
+.upload-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.upload-container .form-group {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 250px;
+}
+
+.upload-status {
+  flex: 1;
+}
+
+.upload-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+}
+
+.upload-message.text-success {
+  background-color: #d4edda;
+}
+
+.upload-message.text-warning {
+  background-color: #fff3cd;
+}
+
+.upload-message.text-danger {
+  background-color: #f8d7da;
+}
+
+/* ===== Issues Log ===== */
+.issues-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.issues-header h4 {
+  margin: 0;
+  color: var(--xls-primary);
+}
+
+.issues-filters {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.issues-filters .form-group {
+  margin-bottom: 0;
+}
+
+/* Fix for filter dropdowns - force horizontal layout */
+.d-flex.flex-wrap.gap-2 > div {
+  flex: 0 0 auto;
+}
+
+.d-flex.flex-wrap.gap-2 > div > .form-group {
+  margin-bottom: 0;
+}
+
+.d-flex.flex-wrap.gap-2 > div > .form-group > label {
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+  color: var(--xls-muted);
+}
+
+.d-flex.flex-wrap.gap-2 > div > .form-group > div > select {
+  min-width: 120px;
+}
+
+.issues-summary {
+  margin-bottom: 1rem;
+}
+
+.summary-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.summary-badges .badge {
+  font-size: 0.85rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.issues-table-container {
+  overflow-x: auto;
+}
+
+/* Issue status indicators */
+.status-open {
+  color: var(--xls-warning);
+  font-weight: 500;
+}
+
+.status-fixed {
+  color: var(--xls-success);
+  font-weight: 500;
+}
+
+.status-ignored {
+  color: var(--xls-muted);
+}
+
+/* DataTable styling */
+.dataTables_wrapper {
+  font-size: 0.9rem;
+}
+
+.dataTables_wrapper .dataTables_length select {
+  padding: 0.25rem 0.5rem;
+}
+
+table.dataTable tbody tr:hover {
+  background-color: #e8f4f8 !important;
+  cursor: pointer;
+}
+
+table.dataTable tbody tr.selected {
+  background-color: #d1ecf1 !important;
+}
+
+/* ===== Spreadsheet Editor ===== */
+.spreadsheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.spreadsheet-header h4 {
+  margin: 0;
+  color: var(--xls-primary);
+}
+
+.sheet-tabs .btn-group {
+  flex-wrap: wrap;
+}
+
+.sheet-tabs .btn {
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.spreadsheet-container {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.spreadsheet-footer {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0;
+  font-size: 0.85rem;
+}
+
+/* Handsontable customization */
+.handsontable {
+  font-size: 0.85rem !important;
+}
+
+.handsontable th {
+  background-color: #f1f3f5 !important;
+  font-weight: 600;
+}
+
+.handsontable td.highlight-error {
+  background-color: #f8d7da !important;
+}
+
+.handsontable td.highlight-warning {
+  background-color: #fff3cd !important;
+}
+
+.handsontable td.highlight-changed {
+  background-color: #d4edda !important;
+}
+
+/* ===== Export Module ===== */
+.export-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.export-status {
+  text-align: center;
+}
+
+.export-status .alert {
+  margin-bottom: 0;
+  padding: 0.75rem;
+}
+
+.export-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.export-actions .btn {
+  width: 100%;
+  padding: 0.75rem;
+}
+
+.changes-detail {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.changes-list h6 {
+  color: var(--xls-primary);
+  margin-bottom: 0.75rem;
+}
+
+.changes-list .table {
+  font-size: 0.8rem;
+  margin-bottom: 0;
+}
+
+/* ===== Badges ===== */
+.badge.bg-danger {
+  background-color: var(--xls-danger) !important;
+}
+
+.badge.bg-warning {
+  background-color: var(--xls-warning) !important;
+}
+
+.badge.bg-info {
+  background-color: var(--xls-info) !important;
+}
+
+.badge.bg-success {
+  background-color: var(--xls-success) !important;
+}
+
+/* ===== Settings Page ===== */
+.settings-card pre {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .issues-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .issues-filters {
+    width: 100%;
+  }
+  
+  .issues-filters .form-group {
+    flex: 1;
+    min-width: 100px;
+  }
+  
+  .spreadsheet-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .upload-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* ===== Animations ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.badge {
+  transition: all 0.2s ease;
+}
+
+.badge:hover {
+  transform: scale(1.05);
+}
+
+.btn {
+  transition: all 0.2s ease;
+}
+
+/* ===== Tooltips ===== */
+[title] {
+  cursor: help;
+}
+
+/* ===== Print Styles ===== */
+@media print {
+  .navbar,
+  .upload-container,
+  .export-actions,
+  .issues-filters {
+    display: none !important;
+  }
+  
+  .card {
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+}
+

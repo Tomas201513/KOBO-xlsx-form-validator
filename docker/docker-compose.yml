@@ -1,0 +1,33 @@
+# XLS-Validator Docker Compose Configuration
+
+version: '3.8'
+
+services:
+  xls-validator:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: xls-validator
+    ports:
+      - "3838:3838"
+    volumes:
+      # Mount local tools folder (for ODK_Validate.jar)
+      - ../tools:/srv/shiny-server/xls-validator/tools:ro
+      # Mount custom rules for easy editing
+      - ../R/custom_rules:/srv/shiny-server/xls-validator/R/custom_rules:ro
+      # Temp directory for file processing
+      - xls-validator-temp:/tmp/xls_validator
+    environment:
+      - SHINY_LOG_STDERR=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3838"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  xls-validator-temp:
+
+

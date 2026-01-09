@@ -1,0 +1,87 @@
+{
+  "R": {
+    "Version": "4.3.0",
+    "Repositories": [
+      {
+        "Name": "CRAN",
+        "URL": "https://cloud.r-project.org"
+      }
+    ]
+  },
+  "Packages": {
+    "shiny": {
+      "Package": "shiny",
+      "Version": "1.8.0",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "readxl": {
+      "Package": "readxl",
+      "Version": "1.4.3",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "writexl": {
+      "Package": "writexl",
+      "Version": "1.4.2",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "processx": {
+      "Package": "processx",
+      "Version": "3.8.2",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "dplyr": {
+      "Package": "dplyr",
+      "Version": "1.1.4",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "purrr": {
+      "Package": "purrr",
+      "Version": "1.0.2",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "DT": {
+      "Package": "DT",
+      "Version": "0.31",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "rhandsontable": {
+      "Package": "rhandsontable",
+      "Version": "0.3.8",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "shinyjs": {
+      "Package": "shinyjs",
+      "Version": "2.1.0",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "bslib": {
+      "Package": "bslib",
+      "Version": "0.6.1",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "stringr": {
+      "Package": "stringr",
+      "Version": "1.5.1",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "tibble": {
+      "Package": "tibble",
+      "Version": "3.2.1",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    }
+  }
+}
+
+

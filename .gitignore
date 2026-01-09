@@ -1,0 +1,55 @@
+# R specific
+.Rhistory
+.Rdata
+.RData
+.Ruserdata
+.Rproj.user/
+
+# renv
+renv/library/
+renv/local/
+renv/staging/
+renv/python/
+renv/.cache/
+
+# Shiny
+rsconnect/
+
+# IDE
+.idea/
+*.swp
+*.swo
+.vscode/
+.cursor/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.temp
+~$*
+
+# Logs
+*.log
+logs/
+
+# Compiled
+*.pyc
+__pycache__/
+
+# Test output
+tests/output/
+
+# Large binary files (users must download separately)
+tools/ODK_Validate.jar
+
+# Test/sample form files (not needed in repo)
+*.xlsx
+*.xls
+!tests/sample_forms/*.xlsx
+
+# User uploads (temp)
+temp/
+
