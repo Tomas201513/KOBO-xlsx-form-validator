@@ -13,6 +13,8 @@ library(dplyr)
 library(tibble)
 library(stringr)
 library(processx)
+library(shinycssloaders)
+
 
 # Source all R modules
 source("R/utils/config.R")
@@ -26,6 +28,7 @@ source("R/editor/change_tracker.R")
 source("R/editor/xlsform_writer.R")
 source("R/custom_rules/rule_registry.R")
 source("R/validate.R")
+source("R/cleaning_log_validator/check_cleaning_log.R")
 
 # Source Shiny modules
 source("modules/mod_upload.R")
@@ -117,7 +120,30 @@ ui <- bslib::page_navbar(
       )
     )
   ),
-  
+ 
+  # Settings panel
+  bslib::nav_panel(
+    title = "Cleaning log Validator",
+    # icon = shiny::icon
+    
+    bslib::layout_columns(
+      col_widths = 12,
+      
+      # Top row: Upload and summary
+      bslib::card(
+        bslib::card_header(
+          class = "d-flex justify-content-between align-items-center",
+          shiny::tags$span(
+            shiny::icon("upload"),
+            "Upload XLSForm"
+          ),
+          shiny::uiOutput("config_status")
+        ),
+        bslib::card_body(
+          mod_upload_ui("upload")
+        )
+      )
+  )),
   # Settings panel
   bslib::nav_panel(
     title = "Settings",
@@ -161,7 +187,49 @@ ui <- bslib::page_navbar(
         )
       )
     )
+  ),
+  
+  # Cleaning Log Validator UI
+  bslib::nav_panel(
+    title = "Cleaning Log Validator",
+    icon = shiny::icon("check"),
+    
+    sidebarLayout(
+      sidebarPanel(
+          width = 3,
+        fileInput(
+          "kobo_file",
+          "Upload KOBO XLSForm (survey & choices sheets)",
+          accept = c(".xlsx"),
+          placeholder = "No file selected"
+        ),
+        fileInput(
+          "cl_file",
+          "Upload Cleaning Log (cleaning_log sheet)",
+          accept = c(".xlsx"),
+          placeholder = "No file selected"
+        ),
+        tags$hr(),
+        actionButton("run_check", "Run Validation", icon = icon("play"), class = "btn-primary"),
+        br(), br(),
+        downloadButton("download_log", "Download Validation Log", class = "btn-success")
+      ),
+      
+      mainPanel(
+        width = 9,
+            h4("Validation Status"),
+            verbatimTextOutput("status") %>% withSpinner(),  # Add loading state
+            
+            tags$hr(),
+            
+            h4("Validation Log"),
+            DTOutput("log_table") %>% withSpinner()  # Add loading state
+    
+      )
+    )
   )
+  
+  
 )
 
 # Server Definition
@@ -288,6 +356,83 @@ server <- function(input, output, session) {
       }
     }
   })
+  
+  
+
+  # Cleaning log validator ######################################################
+  result <- reactiveVal(NULL)
+  
+  observeEvent(input$run_check, {
+    
+    req(input$kobo_file, input$cl_file)
+    
+    tryCatch({
+      
+      # Read files
+      survey_df <- read_xlsx(input$kobo_file$datapath, sheet = "survey")
+      choices_df <- read_xlsx(input$kobo_file$datapath, sheet = "choices")
+      cleaning_log_df <- read_xlsx(input$cl_file$datapath, sheet = "cleaning_log")
+      
+      # Run validation
+      res <- check_cleaning_log(
+        survey_df = survey_df,
+        choices_df = choices_df,
+        cleaning_log_df = cleaning_log_df,
+        cl_cols = list(
+          uuid = "uuid",
+          question = "question",
+          old_value = "old_value",
+          change_type = "change_type",
+          new_value = "new_value"
+        ),
+        header_rows_cleaning_log = 1L,
+        token_split_pattern = "[\\s,]+"
+      )
+      
+      result(res)
+      
+    }, error = function(e) {
+      showNotification(e$message, type = "error", duration = NULL)
+    })
+  })
+  
+  # Status text
+  output$status <- renderText({
+    res <- result()
+    if (is.null(res)) return("No validation run yet.")
+    
+    if (res$valid) {
+      "✅ Cleaning log is VALID. No issues found."
+    } else {
+      paste0("❌ Cleaning log has ", nrow(res$log), " issue(s).")
+    }
+  })
+  
+  # Log table
+  output$log_table <- renderDT({
+    res <- result()
+    if (is.null(res)) return(NULL)
+    
+    datatable(
+      res$log,
+      options = list(pageLength = 5, scrollX = TRUE),
+      rownames = FALSE
+    )
+  })
+  
+  # Download log
+  output$download_log <- downloadHandler(
+    filename = function() {
+      paste0("cleaning_log_validation_", Sys.Date(), ".xlsx")
+    },
+    content = function(file) {
+      res <- result()
+      if (is.null(res)) return(NULL)
+      writexl::write_xlsx(res$log, file)
+    }
+  )
+  
+  
 }
 
 # Run the application
