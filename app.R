@@ -121,29 +121,7 @@ ui <- bslib::page_navbar(
     )
   ),
  
-  # Settings panel
-  bslib::nav_panel(
-    title = "Cleaning log Validator",
-    # icon = shiny::icon
-    
-    bslib::layout_columns(
-      col_widths = 12,
-      
-      # Top row: Upload and summary
-      bslib::card(
-        bslib::card_header(
-          class = "d-flex justify-content-between align-items-center",
-          shiny::tags$span(
-            shiny::icon("upload"),
-            "Upload XLSForm"
-          ),
-          shiny::uiOutput("config_status")
-        ),
-        bslib::card_body(
-          mod_upload_ui("upload")
-        )
-      )
-  )),
+
   # Settings panel
   bslib::nav_panel(
     title = "Settings",
@@ -194,37 +172,56 @@ ui <- bslib::page_navbar(
     title = "Cleaning Log Validator",
     icon = shiny::icon("check"),
     
-    sidebarLayout(
-      sidebarPanel(
-          width = 3,
-        fileInput(
-          "kobo_file",
-          "Upload KOBO XLSForm (survey & choices sheets)",
-          accept = c(".xlsx"),
-          placeholder = "No file selected"
-        ),
-        fileInput(
-          "cl_file",
-          "Upload Cleaning Log (cleaning_log sheet)",
-          accept = c(".xlsx"),
-          placeholder = "No file selected"
-        ),
-        tags$hr(),
-        actionButton("run_check", "Run Validation", icon = icon("play"), class = "btn-primary"),
-        br(), br(),
-        downloadButton("download_log", "Download Validation Log", class = "btn-success")
-      ),
-      
-      mainPanel(
-        width = 9,
-            h4("Validation Status"),
-            verbatimTextOutput("status") %>% withSpinner(),  # Add loading state
-            
-            tags$hr(),
-            
-            h4("Validation Log"),
-            DTOutput("log_table") %>% withSpinner()  # Add loading state
+    # =======================
+    # TOP TOOLBAR (HORIZONTAL)
+    # =======================
+    bslib::card(
+     min_height = "120px",
+      bslib::card_body(
+        bslib::layout_columns(
+          col_widths = c(3, 3, 3, 3),
+          
+          fileInput(
+            "kobo_file",
+            "Upload KOBO XLSForm",
+            accept = ".xlsx"
+          ),
+          
+          fileInput(
+            "cl_file",
+            "Upload Cleaning Log",
+            accept = ".xlsx"
+          ),
+          div(style = "margin-top: 32px;",
+          actionButton(
+            "run_check",
+            "Run Validation",
+            icon = icon("play"),
+            class = "btn-primary w-100"
+          )),
+        div(style = "margin-top: 32px;",
+        
+          downloadButton(
+            "download_log",
+            "Download Log",
+            class = "btn-success w-100"
+          ))
+        )
+      )
+    ),
     
+    # =======================
+    # STATUS + TABLE (BOTTOM)
+    # =======================
+    bslib::card(
+      bslib::card_header(
+        shiny::icon("clipboard-check"),
+        "Validation Results",
+      ),
+        uiOutput("status"),
+      
+      bslib::card_body(
+        DTOutput("log_table") %>% withSpinner()
       )
     )
   )
@@ -361,64 +358,129 @@ server <- function(input, output, session) {
 
   # Cleaning log validator ######################################################
   result <- reactiveVal(NULL)
+  is_running <- reactiveVal(FALSE)
   
   observeEvent(input$run_check, {
     
     req(input$kobo_file, input$cl_file)
     
-    tryCatch({
-      
-      # Read files
-      survey_df <- read_xlsx(input$kobo_file$datapath, sheet = "survey")
-      choices_df <- read_xlsx(input$kobo_file$datapath, sheet = "choices")
-      cleaning_log_df <- read_xlsx(input$cl_file$datapath, sheet = "cleaning_log")
-      
-      # Run validation
-      res <- check_cleaning_log(
-        survey_df = survey_df,
-        choices_df = choices_df,
-        cleaning_log_df = cleaning_log_df,
-        cl_cols = list(
-          uuid = "uuid",
-          question = "question",
-          old_value = "old_value",
-          change_type = "change_type",
-          new_value = "new_value"
-        ),
-        header_rows_cleaning_log = 1L,
-        token_split_pattern = "[\\s,]+"
-      )
-      
-      result(res)
-      
-    }, error = function(e) {
-      showNotification(e$message, type = "error", duration = NULL)
-    })
-  })
+    is_running(TRUE)   # ⬅️ START loading
+    result(NULL)       # clear previous results
+    
+    shiny::withProgress(
+      message = "Running cleaning log validation...",
+      value = 0, {
+        
+        tryCatch({
+          
+          incProgress(0.2, detail = "Reading XLSForm...")
+          
+          survey_df  <- read_xlsx(input$kobo_file$datapath, sheet = "survey")
+          choices_df <- read_xlsx(input$kobo_file$datapath, sheet = "choices")
+          
+          incProgress(0.4, detail = "Reading cleaning log...")
+          
+          cleaning_log_df <- read_xlsx(input$cl_file$datapath, sheet = "cleaning_log")
+          
+          incProgress(0.7, detail = "Validating cleaning log...")
+          
+          res <- check_cleaning_log(
+            survey_df = survey_df,
+            choices_df = choices_df,
+            cleaning_log_df = cleaning_log_df,
+            cl_cols = list(
+              uuid = "uuid",
+              question = "question",
+              old_value = "old_value",
+              change_type = "change_type",
+              new_value = "new_value"
+            ),
+            header_rows_cleaning_log = 1L,
+            token_split_pattern = "[\\s,]+"
+          )
+          
+          incProgress(1)
+          
+          result(res)
+          
+        }, error = function(e) {
+          showNotification(e$message, type = "error", duration = NULL)
+        })
+        
+      } # <-- closes withProgress body
+    )
+    
+    is_running(FALSE)  # ⬅️ END loading
+    
+  }) # <-- closes observeEvent
+  
   
   # Status text
-  output$status <- renderText({
-    res <- result()
-    if (is.null(res)) return("No validation run yet.")
-    
-    if (res$valid) {
-      "✅ Cleaning log is VALID. No issues found."
+  output$status <- renderUI({
+    if (is_running()) {
+      tagList(
+        shiny::icon("spinner", class = "fa-spin"),
+        " Running validation..."
+      )
     } else {
-      paste0("❌ Cleaning log has ", nrow(res$log), " issue(s).")
+      res <- result()
+      if (is.null(res)) return("No validation run yet.")
+      
+      if (res$valid) {
+        "✅ Cleaning log is VALID. No issues found."
+      } else {
+        paste0("❌ Cleaning log has ", nrow(res$log), " issue(s).")
+      }
     }
   })
   
+  
   # Log table
   output$log_table <- renderDT({
+    if (is_running()) return(NULL)
+    
     res <- result()
     if (is.null(res)) return(NULL)
     
-    datatable(
-      res$log,
-      options = list(pageLength = 5, scrollX = TRUE),
-      rownames = FALSE
+    df <- res$log
+    # Define colors per rule_id
+    rule_colors <- c(
+      CL_INVALID_CHANGE_TYPE = "#F3BEBD",
+      CL_NEW_VALUE_NOT_ALLOWED = "#F1F1F1",
+      CL_QUESTION_NOT_IN_SURVEY = "#F6E3E3",
+      CL_DUPLICATE_ACTION = "#DAD9D9",
+      CL_SELECT_ONE_BAD_CHOICE = "#ede7f6",
+      CL_SELECT_MULTIPLE_BAD_CHOICE = "#F4F0E8",
+      CL_NUMERIC_NOT_NUMBER = "#E6DDCA",
+      CL_SELECT_MULTIPLE_BAD_CHOICE = "#E6DDCA"
+      
     )
+    
+    datatable(
+      df,
+      options = list(
+        pageLength = 5,
+        scrollX = TRUE,
+        columnDefs = list(
+          list(
+            targets = which(names(df) == "rule_id") - 1,  # 0-based index
+            visible = FALSE
+          )
+        )
+      ),
+      rownames = FALSE
+    ) %>%
+      formatStyle(
+        columns = names(df),          # apply to whole row
+        valueColumns = "rule_id",     # still available for styling
+        backgroundColor = styleEqual(
+          names(rule_colors),
+          unname(rule_colors)
+        )
+      )
+    
   })
+  
   
   # Download log
   output$download_log <- downloadHandler(
@@ -428,9 +490,69 @@ server <- function(input, output, session) {
     content = function(file) {
       res <- result()
       if (is.null(res)) return(NULL)
-      writexl::write_xlsx(res$log, file)
+      
+      df <- res$log
+      
+      wb <- openxlsx::createWorkbook()
+      openxlsx::addWorksheet(wb, "Validation Log")
+      
+      openxlsx::writeData(wb, "Validation Log", df)
+      
+      # Define colors per rule_id
+      rule_colors <- c(
+        CL_INVALID_CHANGE_TYPE = "#E6F2E0",
+        CL_NEW_VALUE_NOT_ALLOWED = "#F3BEBD",
+        CL_QUESTION_NOT_IN_SURVEY = "#F49695",
+        CL_DUPLICATE_ACTION = "#FEEEED",
+        CL_SELECT_ONE_BAD_CHOICE = "#FEEEED",
+        CL_SELECT_MULTIPLE_BAD_CHOICE = "#F1F1F1",
+        CL_NUMERIC_NOT_NUMBER = "#D1CAB8",
+        CL_SELECT_MULTIPLE_BAD_CHOICE = "#E6DDCA"
+      )
+      
+      # Apply row styles
+      for (rule in names(rule_colors)) {
+        rows <- which(df$rule_id == rule) + 1  # +1 for header row
+        
+        if (length(rows) > 0) {
+          style <- openxlsx::createStyle(
+            fgFill = rule_colors[[rule]]
+          )
+          
+          openxlsx::addStyle(
+            wb,
+            sheet = "Validation Log",
+            style = style,
+            rows = rows,
+            cols = 1:ncol(df),
+            gridExpand = TRUE,
+            stack = TRUE
+          )
+        }
+      }
+      
+      # Optional: make header bold
+      header_style <- openxlsx::createStyle(textDecoration = "bold")
+      openxlsx::addStyle(
+        wb,
+        "Validation Log",
+        style = header_style,
+        rows = 1,
+        cols = 1:ncol(df),
+        gridExpand = TRUE
+      )
+      
+      openxlsx::setColWidths(
+        wb,
+        "Validation Log",
+        cols = 1:ncol(df),
+        widths = "auto"
+      )
+      
+      openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
     }
   )
+  
   
   
 }
