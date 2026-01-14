@@ -41,10 +41,7 @@ app_config <- get_config()
 
 # UI Definition
 ui <- bslib::page_navbar(
-  title = shiny::tags$span(
-    shiny::icon("check-circle"),
-    "XLS-Validator"
-  ),
+
   theme = bslib::bs_theme(
     version = 5,
     bootswatch = "flatly",
@@ -65,9 +62,64 @@ ui <- bslib::page_navbar(
   # Enable shinyjs
   shinyjs::useShinyjs(),
   
+  # About panel
+  
+  bslib::nav_panel(
+    title = "Home",
+    icon = shiny::icon("info-circle"),
+    
+    # --- Two-column responsive layout ---
+    bslib::layout_columns(
+      col_widths = c(6, 6),   # 50% / 50% on large screens; stacks on small screens
+      
+      # =========================
+      # LEFT COLUMN (existing)
+      # =========================
+      bslib::card(
+        bslib::card_header("About KOBO XLS form Validator"),
+        bslib::card_body(
+          shiny::tags$p(
+            "XLS-Validator is an R-based validation platform for ODK XLSForms."
+          ),
+          shiny::tags$p(
+            "It wraps official ODK validation tools (pyxform, ODK Validate) and ",
+            "adds custom R validation rules to produce unified reports."
+          ),
+          shiny::tags$hr(),
+          shiny::tags$h6("Features:"),
+          shiny::tags$ul(
+            shiny::tags$li("Upload and validate XLSForm files"),
+            shiny::tags$li("View validation issues with row navigation"),
+            shiny::tags$li("Edit cells directly in spreadsheet view"),
+            shiny::tags$li("Apply corrections and download fixed forms")
+          ),
+          shiny::tags$hr(),
+          shiny::tags$p(
+            class = "text-muted",
+            "Built with R Shiny, pyxform, and ODK Validate"
+          )
+        )
+      ),
+      
+      # =========================
+      # RIGHT COLUMN (rules)
+      # =========================
+      bslib::card(
+        bslib::card_header("About Cleaning Log Review Rules"),
+        bslib::card_body(
+          # A DT output for the rules table
+          DT::DTOutput("rules_tbl")
+        )
+      )
+    )
+  )
+  ,
+  
+  
+  
   # Main content panel
   bslib::nav_panel(
-    title = "Validator",
+    title = "KOBO xlsx form validator",
     icon = shiny::icon("file-excel"),
     
     bslib::layout_columns(
@@ -122,54 +174,10 @@ ui <- bslib::page_navbar(
   ),
  
 
-  # Settings panel
-  bslib::nav_panel(
-    title = "Settings",
-    icon = shiny::icon("cog"),
-    
-    bslib::card(
-      bslib::card_header("System Configuration"),
-      bslib::card_body(
-        shiny::verbatimTextOutput("config_info")
-      )
-    )
-  ),
-  
-  # About panel
-  bslib::nav_panel(
-    title = "About",
-    icon = shiny::icon("info-circle"),
-    
-    bslib::card(
-      bslib::card_header("About XLS-Validator"),
-      bslib::card_body(
-        shiny::tags$p(
-          "XLS-Validator is an R-based validation platform for ODK XLSForms."
-        ),
-        shiny::tags$p(
-          "It wraps official ODK validation tools (pyxform, ODK Validate) and ",
-          "adds custom R validation rules to produce unified reports."
-        ),
-        shiny::tags$hr(),
-        shiny::tags$h6("Features:"),
-        shiny::tags$ul(
-          shiny::tags$li("Upload and validate XLSForm files"),
-          shiny::tags$li("View validation issues with row navigation"),
-          shiny::tags$li("Edit cells directly in spreadsheet view"),
-          shiny::tags$li("Apply corrections and download fixed forms")
-        ),
-        shiny::tags$hr(),
-        shiny::tags$p(
-          class = "text-muted",
-          "Built with R Shiny, pyxform, and ODK Validate"
-        )
-      )
-    )
-  ),
   
   # Cleaning Log Validator UI
   bslib::nav_panel(
-    title = "Cleaning Log Validator",
+    title = "Cleaning Log reviewer",
     icon = shiny::icon("check"),
     
     # =======================
@@ -553,6 +561,40 @@ server <- function(input, output, session) {
     }
   )
   
+  
+  
+  
+  
+  output$rules_tbl <- DT::renderDT({
+    rules <- data.frame(
+  
+      Checks = c(
+        "Flag if the value in 'change_type' is not one of: 'change_response', 'blank_response', 'remove_survey', or 'no_action'.",
+        "Flag if 'new_value' is not empty when 'change_type' is 'blank_response' or 'no_action'.",
+        "Flag if the 'question' in 'question/answer' type logs does not exist in the tool or dataset.",
+        "Flag if the question in 'question/answer' type logs is not a select-multiple type when expected.",
+        "Flag if the \"choice\" does not exist in the question's choice list for 'question/choice' type logs of multiple choice question.",
+        "Flag if 'change_response' or 'blank_response' actions appear multiple times (twice or in combination) for the same UUID and question.",
+        "Flag if 'remove_survey' occurs together with 'change_response' or 'blank_response' for the same UUID and question.",
+        "Flag if the questions in 'question' column does not exist in the tool.",
+        "Flag if the 'choice' in 'new_value' for select one type does not exist in the tool.",
+        "Flag if numeric questions have non-numeric values in 'new_value'."
+      ),
+      stringsAsFactors = FALSE
+    )
+    
+    DT::datatable(
+      rules,
+      rownames = FALSE,
+      options = list(
+        pageLength = 10,
+        dom = "tpi",                # table + pagination + info
+        autoWidth = TRUE,
+        columnDefs = list(list(className = "dt-left", targets = "_all"))
+      ),
+      escape = FALSE                # allow the single quotes to render nicely
+    )
+  })
   
   
 }
