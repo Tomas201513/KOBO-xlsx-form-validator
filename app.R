@@ -453,14 +453,18 @@ server <- function(input, output, session) {
     df <- res$log
     # Define colors per rule_id
     rule_colors <- c(
-      CL_INVALID_CHANGE_TYPE = "#F3BEBD",
-      CL_NEW_VALUE_NOT_ALLOWED = "#F1F1F1",
-      CL_QUESTION_NOT_IN_SURVEY = "#F6E3E3",
-      CL_DUPLICATE_ACTION = "#DAD9D9",
-      CL_SELECT_ONE_BAD_CHOICE = "#ede7f6",
-      CL_SELECT_MULTIPLE_BAD_CHOICE = "#F4F0E8",
-      CL_NUMERIC_NOT_NUMBER = "#E6DDCA",
-      CL_SELECT_MULTIPLE_BAD_CHOICE = "#E6DDCA"
+      
+      CL_INVALID_CHANGE_TYPE        = "#F3BEBD", 
+      CL_NEW_VALUE_NOT_ALLOWED      = "#F1F1F1", 
+      CL_QUESTION_NOT_IN_SURVEY     = "#F6E3E3", 
+      CL_INVALID_SLASH_USAGE        = "#E7F3F9",
+      CL_SELECT_MULTIPLE_BAD_CHOICE = "#F4F0E8", 
+      CL_DUPLICATE_ACTION           = "#DAD9D9", 
+      CL_REMOVE_SURVEY_CONFLICT     = "#FFF0CC", 
+      CL_QUESTION_MISSING           = "#EAF4EA", 
+      CL_SELECT_ONE_BAD_CHOICE      = "#EDE7F6", 
+      CL_NUMERIC_NOT_NUMBER         = "#E6DDCA"  
+      
       
     )
     
@@ -508,14 +512,16 @@ server <- function(input, output, session) {
       
       # Define colors per rule_id
       rule_colors <- c(
-        CL_INVALID_CHANGE_TYPE = "#E6F2E0",
-        CL_NEW_VALUE_NOT_ALLOWED = "#F3BEBD",
-        CL_QUESTION_NOT_IN_SURVEY = "#F49695",
-        CL_DUPLICATE_ACTION = "#FEEEED",
-        CL_SELECT_ONE_BAD_CHOICE = "#FEEEED",
-        CL_SELECT_MULTIPLE_BAD_CHOICE = "#F1F1F1",
-        CL_NUMERIC_NOT_NUMBER = "#D1CAB8",
-        CL_SELECT_MULTIPLE_BAD_CHOICE = "#E6DDCA"
+        CL_INVALID_CHANGE_TYPE        = "#F3BEBD", 
+        CL_NEW_VALUE_NOT_ALLOWED      = "#F1F1F1", 
+        CL_QUESTION_NOT_IN_SURVEY     = "#F6E3E3", 
+        CL_INVALID_SLASH_USAGE        = "#E7F3F9",
+        CL_SELECT_MULTIPLE_BAD_CHOICE = "#F4F0E8", 
+        CL_DUPLICATE_ACTION           = "#DAD9D9", 
+        CL_REMOVE_SURVEY_CONFLICT     = "#FFF0CC", 
+        CL_QUESTION_MISSING           = "#EAF4EA", 
+        CL_SELECT_ONE_BAD_CHOICE      = "#EDE7F6", 
+        CL_NUMERIC_NOT_NUMBER         = "#E6DDCA"  
       )
       
       # Apply row styles
