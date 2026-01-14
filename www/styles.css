@@ -1,44 +1,182 @@
 /* XLS-Validator Custom Styles */
+/* Brand color palette based on organizational guidelines */
 
 /* ===== General ===== */
 :root {
-  --xls-primary: #2c3e50;
-  --xls-success: #18bc9c;
-  --xls-warning: #f39c12;
-  --xls-danger: #e74c3c;
-  --xls-info: #3498db;
-  --xls-muted: #95a5a6;
+  /* Primary brand colors */
+  --xls-primary: #58585A;        /* Dark gray - primary text, headers */
+  --xls-accent: #EE5859;         /* Coral red - accent, primary actions */
+  
+  /* Secondary brand colors */
+  --xls-secondary: #D2CBB8;      /* Tan/beige - secondary elements */
+  --xls-secondary-light: #C7C8CA; /* Light gray - borders, disabled */
+  
+  /* Semantic colors (mapped from brand palette) */
+  --xls-success: #58585A;        /* Dark gray for success/complete */
+  --xls-warning: #EE5859;        /* Coral for warnings - high visibility */
+  --xls-danger: #EE5859;         /* Coral for errors */
+  --xls-info: #58585A;           /* Dark gray for info */
+  --xls-muted: #9A9A9C;          /* Light gray for muted text */
+  
+  /* Coral ramp */
+  --xls-coral: #EE5859;
+  --xls-coral-80: #F1797A;
+  --xls-coral-60: #F49A9B;
+  --xls-coral-40: #F8BCBC;
+  --xls-coral-20: #FBDDDD;
+  
+  /* Gray ramp */
+  --xls-gray: #58585A;
+  --xls-gray-80: #79797B;
+  --xls-gray-60: #9A9A9C;
+  --xls-gray-40: #BCBCBD;
+  --xls-gray-20: #DDDDDE;
+  
+  /* Tan ramp */
+  --xls-tan: #D2CBB8;
+  --xls-tan-80: #DBD5C6;
+  --xls-tan-60: #E4DFD4;
+  --xls-tan-40: #EDEAE2;
+  --xls-tan-20: #F6F4F0;
+  
+  /* Light gray ramp */
+  --xls-light: #C7C8CA;
+  --xls-light-80: #D2D3D4;
+  --xls-light-60: #DDDEDF;
+  --xls-light-40: #E8E9E9;
+  --xls-light-20: #F3F4F4;
 }
 
 body {
-  background-color: #f8f9fa;
+  background-color: var(--xls-tan-20);
+  font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
 }
 
 /* ===== Cards ===== */
 .card {
   border: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(88, 88, 90, 0.12);
   margin-bottom: 1rem;
+  background-color: #fff;
+  border-left: 4px solid var(--xls-coral);
 }
 
 .card-header {
-  background-color: #fff;
-  border-bottom: 1px solid #eee;
+  background-color: var(--xls-tan-20);
+  border-bottom: 1px solid var(--xls-light-60);
   font-weight: 600;
+  color: var(--xls-gray);
 }
 
 /* ===== Upload Module ===== */
+/* Fixed height upload card */
+.upload-card {
+  min-height: 130px !important;
+}
+
+.upload-card .card-body {
+  min-height: 90px !important;
+  height: 90px !important;
+  max-height: 90px !important;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
 .upload-container {
   display: flex;
   align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 .upload-container .form-group {
   margin-bottom: 0;
   flex: 1;
   min-width: 250px;
+}
+
+/* Fixed height for file input - constant size in ALL states */
+/* Target the outermost container to ensure fixed height */
+.upload-container .form-group.shiny-input-container {
+  min-height: 80px !important;
+  height: 80px !important;
+  flex-shrink: 0 !important;
+  position: relative;
+}
+
+/* The wrapper div inside shiny-input-container */
+.upload-container .form-group.shiny-input-container > div {
+  min-height: 80px !important;
+  height: 80px !important;
+}
+
+.upload-container .input-group,
+.upload-container .input-group:hover,
+.upload-container .input-group:focus-within {
+  height: 80px !important;
+  min-height: 80px !important;
+  max-height: 80px !important;
+  flex-shrink: 0 !important;
+}
+
+.upload-container .input-group .btn,
+.upload-container .input-group .form-control {
+  height: 80px !important;
+  min-height: 80px !important;
+  max-height: 80px !important;
+  font-size: 1.1rem;
+  transition: background-color 0.15s ease, border-color 0.15s ease !important;
+  transform: none !important;
+  flex-shrink: 0 !important;
+}
+
+.upload-container .input-group .btn:hover,
+.upload-container .input-group .form-control:hover,
+.upload-container .input-group .btn:focus,
+.upload-container .input-group .form-control:focus,
+.upload-container .input-group .btn:active,
+.upload-container .input-group .form-control:active {
+  height: 80px !important;
+  min-height: 80px !important;
+  max-height: 80px !important;
+  transform: none !important;
+}
+
+.upload-container .input-group .btn {
+  padding: 0.75rem 1.5rem;
+}
+
+.upload-container .input-group .form-control {
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.upload-container .input-group-btn,
+.upload-container .input-group-btn .btn {
+  height: 80px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Progress bar - overlay style so it doesn't affect layout */
+.upload-container .progress,
+.upload-container .shiny-file-input-progress {
+  height: 6px !important;
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin: 0 !important;
+  z-index: 10;
+  border-radius: 0 0 4px 4px;
+}
+
+/* Hide the progress container when complete */
+.upload-container .progress.progress-striped:not(.active) {
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .upload-status {
@@ -51,19 +189,22 @@ body {
   gap: 0.5rem;
   padding: 0.5rem 1rem;
   border-radius: 4px;
-  background-color: #f8f9fa;
+  background-color: var(--xls-light-20);
 }
 
 .upload-message.text-success {
-  background-color: #d4edda;
+  background-color: var(--xls-gray-20);
+  color: var(--xls-gray);
 }
 
 .upload-message.text-warning {
-  background-color: #fff3cd;
+  background-color: var(--xls-tan-40);
+  color: var(--xls-gray);
 }
 
 .upload-message.text-danger {
-  background-color: #f8d7da;
+  background-color: var(--xls-coral-20);
+  color: var(--xls-coral);
 }
 
 /* ===== Issues Log ===== */
@@ -131,12 +272,12 @@ body {
 
 /* Issue status indicators */
 .status-open {
-  color: var(--xls-warning);
+  color: var(--xls-coral);
   font-weight: 500;
 }
 
 .status-fixed {
-  color: var(--xls-success);
+  color: var(--xls-gray);
   font-weight: 500;
 }
 
@@ -154,12 +295,25 @@ body {
 }
 
 table.dataTable tbody tr:hover {
-  background-color: #e8f4f8 !important;
+  background-color: var(--xls-coral-20) !important;
   cursor: pointer;
 }
 
 table.dataTable tbody tr.selected {
-  background-color: #d1ecf1 !important;
+  background-color: var(--xls-coral-40) !important;
+}
+
+/* DataTable pagination buttons */
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  background: var(--xls-coral) !important;
+  border-color: var(--xls-coral) !important;
+  color: #fff !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+  background: var(--xls-coral-80) !important;
+  border-color: var(--xls-coral-80) !important;
+  color: #fff !important;
 }
 
 /* ===== Spreadsheet Editor ===== */
@@ -187,7 +341,7 @@ table.dataTable tbody tr.selected {
 }
 
 .spreadsheet-container {
-  border: 1px solid #ddd;
+  border: 1px solid var(--xls-gray-40);
   border-radius: 4px;
   overflow: hidden;
   background: #fff;
@@ -205,20 +359,54 @@ table.dataTable tbody tr.selected {
 }
 
 .handsontable th {
-  background-color: #f1f3f5 !important;
+  background-color: var(--xls-tan-40) !important;
   font-weight: 600;
+  color: var(--xls-gray);
 }
 
+/* Cell highlighting via custom renderer classes */
+.handsontable td.cell-error {
+  background-color: var(--xls-coral-20) !important;
+  border-left: 3px solid var(--xls-coral) !important;
+}
+
+.handsontable td.cell-warning {
+  background-color: var(--xls-tan-40) !important;
+  border-left: 3px solid var(--xls-tan) !important;
+}
+
+.handsontable td.cell-edited {
+  background-color: var(--xls-gray-20) !important;
+  border-left: 3px solid var(--xls-gray) !important;
+}
+
+/* Legacy classes for backward compatibility */
 .handsontable td.highlight-error {
-  background-color: #f8d7da !important;
+  background-color: var(--xls-coral-20) !important;
 }
 
 .handsontable td.highlight-warning {
-  background-color: #fff3cd !important;
+  background-color: var(--xls-tan-40) !important;
 }
 
 .handsontable td.highlight-changed {
-  background-color: #d4edda !important;
+  background-color: var(--xls-gray-20) !important;
+}
+
+/* Spreadsheet toolbar */
+.spreadsheet-toolbar {
+  padding: 0.5rem;
+  background: var(--xls-tan-20);
+  border-radius: 4px;
+  border: 1px solid var(--xls-light-60);
+}
+
+.spreadsheet-toolbar .btn-group .btn {
+  padding: 0.25rem 0.5rem;
+}
+
+.spreadsheet-toolbar .btn-group .btn:hover {
+  transform: none;
 }
 
 /* ===== Export Module ===== */
@@ -265,57 +453,350 @@ table.dataTable tbody tr.selected {
 
 /* ===== Badges ===== */
 .badge.bg-danger {
-  background-color: var(--xls-danger) !important;
+  background-color: var(--xls-coral) !important;
+  color: #fff !important;
 }
 
-.badge.bg-warning {
-  background-color: var(--xls-warning) !important;
+/* Warning badges - coral accent, override text-dark */
+.badge.bg-warning,
+.badge.bg-warning.text-dark {
+  background-color: var(--xls-coral-80) !important;
+  color: #fff !important;
 }
 
 .badge.bg-info {
-  background-color: var(--xls-info) !important;
+  background-color: var(--xls-gray) !important;
+  color: #fff !important;
 }
 
 .badge.bg-success {
-  background-color: var(--xls-success) !important;
+  background-color: var(--xls-gray) !important;
+  color: #fff !important;
+}
+
+/* Primary badges - coral for source=ODK */
+.badge.bg-primary {
+  background-color: var(--xls-coral) !important;
+  color: #fff !important;
+}
+
+/* Secondary badges - dark gray for source=Custom */
+.badge.bg-secondary {
+  background-color: var(--xls-gray) !important;
+  color: #fff !important;
+}
+
+/* Custom badge variants for validation states */
+.badge.bg-error {
+  background-color: var(--xls-coral) !important;
+  color: #fff !important;
+}
+
+.badge.bg-complete {
+  background-color: var(--xls-gray) !important;
+  color: #fff !important;
 }
 
 /* ===== Settings Page ===== */
 .settings-card pre {
-  background-color: #f8f9fa;
+  background-color: var(--xls-tan-20);
   padding: 1rem;
   border-radius: 4px;
   font-size: 0.85rem;
   max-height: 500px;
   overflow-y: auto;
+  border: 1px solid var(--xls-light-60);
 }
 
-/* ===== Responsive ===== */
+/* ===== Responsive - Tablet ===== */
+@media (max-width: 992px) {
+  /* Adjust column layout for tablet */
+  .bslib-layout-columns {
+    --bs-columns: 1 !important;
+  }
+  
+  /* Stack cleaning panel below spreadsheet */
+  .cleaning-panel-card {
+    max-height: 350px;
+  }
+  
+  /* Reduce card padding */
+  .card-body {
+    padding: 0.75rem;
+  }
+}
+
+/* ===== Responsive - Mobile ===== */
 @media (max-width: 768px) {
+  /* General mobile adjustments */
+  body {
+    font-size: 14px;
+  }
+  
+  /* Navigation */
+  .navbar-brand {
+    font-size: 1rem;
+  }
+  
+  /* Issues header */
   .issues-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
   }
   
+  /* Issues filters - stack vertically */
   .issues-filters {
     width: 100%;
+    flex-direction: column;
   }
   
   .issues-filters .form-group {
     flex: 1;
-    min-width: 100px;
+    min-width: 100%;
+    width: 100%;
   }
   
+  .d-flex.flex-wrap.gap-2 {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .d-flex.flex-wrap.gap-2 > div {
+    width: 100%;
+  }
+  
+  .d-flex.flex-wrap.gap-2 > div > .form-group > div > select {
+    width: 100%;
+  }
+  
+  /* Spreadsheet header */
   .spreadsheet-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
   }
   
+  /* Upload container */
   .upload-container {
     flex-direction: column;
     align-items: stretch;
+  }
+  
+  /* Spreadsheet - enable horizontal scroll */
+  .spreadsheet-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .spreadsheet-card {
+    overflow-x: auto;
+  }
+  
+  /* Handsontable mobile adjustments */
+  .handsontable {
+    font-size: 0.75rem !important;
+  }
+  
+  .handsontable th,
+  .handsontable td {
+    padding: 4px 6px !important;
+  }
+  
+  /* Cleaning panel - fixed bottom on mobile */
+  .cleaning-panel-card {
+    max-height: none;
+  }
+  
+  .cleaning-panel {
+    padding: 0.5rem;
+  }
+  
+  .cleaning-panel-header h5 {
+    font-size: 1rem;
+  }
+  
+  /* Issue details - more compact */
+  .issue-details-card {
+    padding: 0.5rem;
+  }
+  
+  .issue-location .table td {
+    padding: 0.1rem 0.25rem;
+    font-size: 0.8rem;
+  }
+  
+  .issue-message {
+    font-size: 0.8rem;
+  }
+  
+  /* Buttons - touch-friendly sizing */
+  .btn {
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+  }
+  
+  .btn-sm {
+    min-height: 36px;
+    padding: 0.375rem 0.75rem;
+  }
+  
+  /* Action buttons - full width on mobile */
+  .cleaning-actions .btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  .cleaning-actions .d-flex {
+    flex-direction: column;
+  }
+  
+  /* Export buttons - full width */
+  .export-actions .btn {
+    min-height: 48px;
+  }
+  
+  /* DataTable mobile adjustments */
+  .dataTables_wrapper {
+    font-size: 0.8rem;
+  }
+  
+  .dataTables_wrapper .dataTables_length,
+  .dataTables_wrapper .dataTables_filter {
+    text-align: left;
+    margin-bottom: 0.5rem;
+  }
+  
+  .dataTables_wrapper .dataTables_info,
+  .dataTables_wrapper .dataTables_paginate {
+    text-align: center;
+    margin-top: 0.5rem;
+  }
+  
+  table.dataTable tbody td {
+    padding: 0.5rem 0.25rem;
+  }
+  
+  /* Hide less important columns on mobile */
+  table.dataTable th:nth-child(4),
+  table.dataTable td:nth-child(4),
+  table.dataTable th:nth-child(5),
+  table.dataTable td:nth-child(5) {
+    display: none;
+  }
+  
+  /* Summary badges - wrap nicely */
+  .summary-badges {
+    justify-content: flex-start;
+  }
+  
+  .summary-badges .badge {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
+  }
+  
+  /* Cards - reduce spacing */
+  .card {
+    margin-bottom: 0.75rem;
+  }
+  
+  .card-header {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+  }
+  
+  /* Change history - more compact */
+  .change-history {
+    max-height: 150px;
+  }
+  
+  .change-history-item {
+    font-size: 0.75rem;
+    padding: 0.5rem !important;
+  }
+  
+  /* Current value - smaller */
+  .current-value {
+    font-size: 0.75rem;
+    max-height: 60px;
+  }
+  
+  /* Textarea - appropriate size */
+  .correction-form textarea {
+    font-size: 0.85rem;
+    min-height: 60px;
+  }
+}
+
+/* ===== Responsive - Small Mobile ===== */
+@media (max-width: 480px) {
+  /* Even more compact for small screens */
+  .navbar-brand span {
+    display: none;
+  }
+  
+  .card-body {
+    padding: 0.5rem;
+  }
+  
+  /* Hide message column on very small screens */
+  table.dataTable th:nth-child(6),
+  table.dataTable td:nth-child(6) {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  /* Stack badges vertically */
+  .summary-badges {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  
+  /* Reduce button text */
+  .btn {
+    font-size: 0.85rem;
+  }
+}
+
+/* ===== Touch-friendly enhancements ===== */
+@media (hover: none) and (pointer: coarse) {
+  /* Touch devices */
+  .btn:active {
+    transform: scale(0.98);
+  }
+  
+  table.dataTable tbody tr:active {
+    background-color: var(--xls-coral-40) !important;
+  }
+  
+  /* Larger touch targets */
+  .dataTables_paginate .paginate_button {
+    padding: 0.5rem 0.75rem !important;
+    min-width: 40px;
+  }
+  
+  /* Scrollable areas - show scrollbar hint */
+  .spreadsheet-container,
+  .change-history,
+  .cleaning-panel-card {
+    scrollbar-width: thin;
+  }
+  
+  .spreadsheet-container::-webkit-scrollbar,
+  .change-history::-webkit-scrollbar,
+  .cleaning-panel-card::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .spreadsheet-container::-webkit-scrollbar-thumb,
+  .change-history::-webkit-scrollbar-thumb,
+  .cleaning-panel-card::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
   }
 }
 
@@ -346,18 +827,469 @@ table.dataTable tbody tr.selected {
   cursor: help;
 }
 
+/* ===== Cleaning Panel ===== */
+.cleaning-panel {
+  height: 100%;
+}
+
+.cleaning-panel-header {
+  border-bottom: 2px solid var(--xls-primary);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.cleaning-panel-header h5 {
+  margin: 0;
+  color: var(--xls-primary);
+  font-weight: 600;
+}
+
+.cleaning-section {
+  margin-bottom: 1rem;
+}
+
+.cleaning-panel-card {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+/* Issue details card */
+.issue-details-card {
+  background: var(--xls-tan-20);
+  border-radius: 6px;
+  padding: 0.75rem;
+  border-left: 4px solid var(--xls-coral);
+}
+
+.issue-location .table {
+  margin-bottom: 0;
+}
+
+.issue-location .table td {
+  padding: 0.15rem 0.5rem;
+  border: none;
+}
+
+.issue-message {
+  font-size: 0.9rem;
+}
+
+/* Current value display */
+.current-value {
+  background: #fff;
+  border: 1px solid var(--xls-light-60);
+  border-radius: 4px;
+  padding: 0.5rem;
+  font-family: var(--bs-font-monospace);
+  font-size: 0.85rem;
+  max-height: 80px;
+  overflow-y: auto;
+  word-break: break-all;
+}
+
+/* Correction form */
+.correction-form .form-label {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.correction-form textarea {
+  font-size: 0.9rem;
+}
+
+/* Action buttons */
+.cleaning-actions {
+  margin-top: 1rem;
+}
+
+.cleaning-actions .btn {
+  font-size: 0.85rem;
+}
+
+/* Change history */
+.change-history {
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.change-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.change-history-item {
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.change-history-item:hover {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.change-history-item .btn-link {
+  color: var(--xls-muted);
+  text-decoration: none;
+}
+
+.change-history-item .btn-link:hover {
+  color: var(--xls-danger);
+}
+
 /* ===== Print Styles ===== */
 @media print {
   .navbar,
   .upload-container,
   .export-actions,
-  .issues-filters {
+  .issues-filters,
+  .cleaning-panel {
     display: none !important;
   }
   
   .card {
     box-shadow: none;
-    border: 1px solid #ddd;
+    border: 1px solid var(--xls-gray-40);
+  }
+}
+
+/* ===== Typography - Brand Fonts ===== */
+h1, h2, h3, h4, h5, h6,
+.card-header,
+.navbar-brand,
+.nav-link {
+  font-family: 'Roboto Condensed', 'Segoe UI', Arial, sans-serif;
+  font-weight: 700;
+}
+
+/* Navbar branding */
+.navbar {
+  background-color: var(--xls-gray) !important;
+  border-bottom: 3px solid var(--xls-coral) !important;
+}
+
+.navbar-brand {
+  color: #fff !important;
+}
+
+.navbar-brand .fa,
+.navbar-brand .fas,
+.navbar-brand .far,
+.navbar-brand i {
+  color: var(--xls-coral) !important;
+}
+
+.nav-link {
+  color: rgba(255, 255, 255, 0.85) !important;
+  font-weight: 500;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: #fff !important;
+  background-color: rgba(238, 88, 89, 0.2) !important;
+}
+
+.nav-link.active {
+  border-bottom: 3px solid var(--xls-coral) !important;
+  background-color: rgba(238, 88, 89, 0.15) !important;
+}
+
+/* Primary buttons - Coral accent */
+.btn-primary {
+  background-color: var(--xls-coral) !important;
+  border-color: var(--xls-coral) !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: #d94f50 !important;
+  border-color: #d94f50 !important;
+  box-shadow: 0 2px 8px rgba(238, 88, 89, 0.4) !important;
+}
+
+/* Secondary buttons - Dark gray */
+.btn-secondary {
+  background-color: var(--xls-gray) !important;
+  border-color: var(--xls-gray) !important;
+  color: #fff !important;
+  font-weight: 500;
+}
+
+.btn-secondary:hover,
+.btn-secondary:focus {
+  background-color: var(--xls-gray-80) !important;
+  border-color: var(--xls-gray-80) !important;
+}
+
+/* Outline buttons */
+.btn-outline-primary {
+  color: var(--xls-coral) !important;
+  border-color: var(--xls-coral) !important;
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--xls-coral) !important;
+  color: #fff !important;
+}
+
+.btn-outline-secondary {
+  color: var(--xls-gray) !important;
+  border-color: var(--xls-gray) !important;
+}
+
+.btn-outline-secondary:hover {
+  background-color: var(--xls-gray) !important;
+  color: #fff !important;
+}
+
+/* Danger buttons */
+.btn-danger {
+  background-color: var(--xls-coral) !important;
+  border-color: var(--xls-coral) !important;
+}
+
+/* Success buttons */
+.btn-success {
+  background-color: var(--xls-gray) !important;
+  border-color: var(--xls-gray) !important;
+}
+
+/* Warning buttons */
+.btn-warning {
+  background-color: var(--xls-tan) !important;
+  border-color: var(--xls-tan) !important;
+  color: var(--xls-gray) !important;
+}
+
+/* Progress bar */
+.progress-bar {
+  background-color: var(--xls-coral) !important;
+}
+
+/* Links */
+a {
+  color: var(--xls-coral);
+}
+
+a:hover {
+  color: var(--xls-coral-80);
+}
+
+/* Form controls focus state */
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--xls-coral-60) !important;
+  box-shadow: 0 0 0 0.2rem rgba(238, 88, 89, 0.25) !important;
+}
+
+/* Tab styling */
+.nav-tabs .nav-link {
+  color: var(--xls-gray) !important;
+  font-weight: 500;
+  border: none !important;
+  padding: 0.75rem 1.25rem;
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--xls-coral) !important;
+  border-bottom: 3px solid var(--xls-coral) !important;
+  background-color: transparent !important;
+  font-weight: 600;
+}
+
+.nav-tabs .nav-link:hover:not(.active) {
+  color: var(--xls-coral) !important;
+  background-color: var(--xls-coral-20) !important;
+}
+
+/* Navset card tab (main content tabs) */
+.nav-underline .nav-link {
+  color: var(--xls-gray) !important;
+  border-bottom: 2px solid transparent;
+}
+
+.nav-underline .nav-link.active {
+  color: var(--xls-coral) !important;
+  border-bottom: 3px solid var(--xls-coral) !important;
+}
+
+/* Alert styling */
+.alert-danger {
+  background-color: var(--xls-coral-20);
+  border-color: var(--xls-coral-40);
+  color: var(--xls-gray);
+}
+
+.alert-warning {
+  background-color: var(--xls-tan-40);
+  border-color: var(--xls-tan);
+  color: var(--xls-gray);
+}
+
+.alert-success {
+  background-color: var(--xls-gray-20);
+  border-color: var(--xls-gray-40);
+  color: var(--xls-gray);
+}
+
+.alert-info {
+  background-color: var(--xls-light-40);
+  border-color: var(--xls-light);
+  color: var(--xls-gray);
+}
+
+/* ===== Home Page Styles ===== */
+.home-card {
+  border-left: none;
+  border-radius: 8px;
+  border: 1px solid var(--xls-light-60);
+}
+
+.home-card-header {
+  background: var(--xls-tan-20);
+  color: var(--xls-gray);
+  padding: 0.9rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  border-bottom: 1px solid var(--xls-light-60);
+}
+
+.home-card-body {
+  padding: 1.25rem;
+  background: #fff;
+}
+
+/* Intro text */
+.intro-text {
+  font-size: 0.95rem;
+  color: var(--xls-gray-80);
+  line-height: 1.6;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--xls-light-60);
+}
+
+/* Section blocks */
+.section-block {
+  margin-bottom: 1.25rem;
+}
+
+.section-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--xls-gray-60);
+  margin-bottom: 0.5rem;
+}
+
+.section-text {
+  font-size: 0.9rem;
+  color: var(--xls-gray-80);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.section-text code {
+  background: var(--xls-tan-40);
+  color: var(--xls-gray);
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.82rem;
+}
+
+/* Feature list */
+.feature-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+  color: var(--xls-gray-80);
+  line-height: 1.7;
+}
+
+.feature-list li {
+  margin-bottom: 0.35rem;
+}
+
+.feature-list li::marker {
+  color: var(--xls-coral);
+}
+
+/* Home footer */
+.home-footer {
+  padding-top: 1rem;
+  border-top: 1px solid var(--xls-light-60);
+  font-size: 0.8rem;
+  color: var(--xls-gray-60);
+}
+
+.home-footer .separator {
+  margin: 0 0.4rem;
+  color: var(--xls-light);
+}
+
+.home-footer a {
+  color: var(--xls-coral);
+  text-decoration: none;
+}
+
+.home-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Rules intro */
+.rules-intro-text {
+  font-size: 0.85rem;
+  color: var(--xls-gray-60);
+  margin-bottom: 1rem;
+}
+
+.rules-table-wrapper {
+  background: #fff;
+}
+
+/* Rules table styling */
+.rules-table-wrapper .dataTables_wrapper {
+  font-size: 0.85rem;
+}
+
+.rules-table-wrapper table.dataTable thead th {
+  background: var(--xls-tan-20);
+  font-weight: 500;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--xls-gray-60);
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--xls-light-60);
+}
+
+.rules-table-wrapper table.dataTable tbody td {
+  padding: 0.6rem 0.75rem;
+  vertical-align: top;
+  line-height: 1.5;
+  border-bottom: 1px solid var(--xls-light-40);
+}
+
+.rules-table-wrapper table.dataTable tbody tr:hover {
+  background-color: var(--xls-tan-20) !important;
+}
+
+/* Responsive adjustments for home page */
+@media (max-width: 768px) {
+  .home-card-body {
+    padding: 1rem;
+  }
+  
+  .intro-text {
+    font-size: 0.9rem;
+  }
+  
+  .feature-list {
+    font-size: 0.85rem;
   }
 }
 

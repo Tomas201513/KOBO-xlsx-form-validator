@@ -48,7 +48,7 @@ set_rule_enabled <- function(rule_id, enabled) {
 }
 
 #' Run all registered custom rules
-#' @param xlsform_data List of data frames from xlsform_reader
+#' @param xlsform_data List of data frames from xlsform_reader (sheets or full xlsform_data)
 #' @return Combined tibble of all custom rule issues
 run_custom_rules <- function(xlsform_data) {
   rules <- get_registered_rules(enabled_only = TRUE)
@@ -57,11 +57,16 @@ run_custom_rules <- function(xlsform_data) {
     return(create_empty_results())
   }
   
+  # Normalize input: ensure we have a consistent structure
+  # Rules receive the sheets list, but we also provide full context if available
+  rule_context <- normalize_rule_context(xlsform_data)
+  
   all_issues <- create_empty_results()
   
   for (rule in rules) {
     tryCatch({
-      issues <- rule$fn(xlsform_data)
+      # Pass the normalized context to rules
+      issues <- rule$fn(rule_context)
       
       # Ensure source is set to 'custom'
       if (nrow(issues) > 0) {
@@ -81,6 +86,90 @@ run_custom_rules <- function(xlsform_data) {
   }
   
   all_issues
+}
+
+#' Normalize rule context for consistent rule execution
+#' Ensures rules receive both individual sheets and full context
+#' @param xlsform_data Input data (could be sheets list or full xlsform_data)
+#' @return Normalized context with survey, choices, settings, and metadata
+normalize_rule_context <- function(xlsform_data) {
+  # If it's already the sheets list (legacy format)
+  if ("survey" %in% names(xlsform_data) && is.data.frame(xlsform_data$survey)) {
+    # Add metadata if not present
+    context <- xlsform_data
+    if (!"_meta" %in% names(context)) {
+      context$`_meta` <- list(
+        has_full_context = FALSE,
+        available_sheets = names(xlsform_data)
+      )
+    }
+    return(context)
+  }
+  
+  # If it's full xlsform_data with $sheets
+  if ("sheets" %in% names(xlsform_data)) {
+    context <- xlsform_data$sheets
+    context$`_meta` <- list(
+      has_full_context = TRUE,
+      file_path = xlsform_data$file_path,
+      file_name = xlsform_data$file_name,
+      name_index = xlsform_data$name_index,
+      available_sheets = names(xlsform_data$sheets)
+    )
+    return(context)
+  }
+  
+  # Fallback: return as-is
+  xlsform_data
+}
+
+#' Get all field names from survey sheet
+#' Helper for rules that need to validate field references
+#' @param xlsform_data Rule context
+#' @return Character vector of field names
+get_all_field_names <- function(xlsform_data) {
+  survey <- if ("survey" %in% names(xlsform_data)) xlsform_data$survey else NULL
+  if (is.null(survey) || !"name" %in% names(survey)) {
+    return(character())
+  }
+  
+  names_col <- survey$name
+  names_col <- names_col[!is.na(names_col) & nchar(trimws(names_col)) > 0]
+  unique(names_col)
+}
+
+#' Get all choice list names from choices sheet
+#' Helper for rules that need to validate list references
+#' @param xlsform_data Rule context
+#' @return Character vector of list names
+get_all_list_names <- function(xlsform_data) {
+  choices <- if ("choices" %in% names(xlsform_data)) xlsform_data$choices else NULL
+  if (is.null(choices) || !"list_name" %in% names(choices)) {
+    return(character())
+  }
+  
+  list_names <- choices$list_name
+  list_names <- list_names[!is.na(list_names) & nchar(trimws(list_names)) > 0]
+  unique(list_names)
+}
+
+#' Get choice values for a specific list
+#' Helper for rules that need to validate choice references
+#' @param xlsform_data Rule context
+#' @param list_name Name of the choice list
+#' @return Character vector of choice names/values
+get_choice_values <- function(xlsform_data, list_name) {
+  choices <- if ("choices" %in% names(xlsform_data)) xlsform_data$choices else NULL
+  if (is.null(choices) || !"list_name" %in% names(choices) || !"name" %in% names(choices)) {
+    return(character())
+  }
+  
+  list_choices <- choices[choices$list_name == list_name & !is.na(choices$list_name), ]
+  if (nrow(list_choices) == 0) return(character())
+  
+  choice_names <- list_choices$name
+  choice_names <- choice_names[!is.na(choice_names)]
+  unique(choice_names)
 }
 
 #' List all rules with their status
@@ -138,5 +227,6 @@ clear_rules <- function() {
     })
   }
 }
+
 
 

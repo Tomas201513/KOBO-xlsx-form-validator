@@ -1,12 +1,127 @@
 # XLSForm Writer for XLS-Validator
 # Writes corrected XLSForm back to Excel file
+# Supports format-preserving export using openxlsx when original file is available
 
 #' Write XLSForm data to Excel file
 #' @param xlsform_data List from read_xlsform (with or without applied changes)
 #' @param output_path Path for output file
-#' @param original_path Original file path (to preserve sheet order and any extra sheets)
+#' @param original_path Original file path (to preserve sheet order and formatting)
+#' @param preserve_format If TRUE and openxlsx is available, preserve original formatting
 #' @return Path to written file
-write_xlsform <- function(xlsform_data, output_path, original_path = NULL) {
+write_xlsform <- function(xlsform_data, output_path, original_path = NULL, 
+                          preserve_format = TRUE) {
+  # Try format-preserving write if original exists and openxlsx is available
+  if (preserve_format && !is.null(original_path) && file.exists(original_path)) {
+    if (requireNamespace("openxlsx", quietly = TRUE)) {
+      result <- tryCatch({
+        write_xlsform_styled(xlsform_data, output_path, original_path)
+        return(normalizePath(output_path, winslash = "/"))
+      }, error = function(e) {
+        warning("Format-preserving write failed, falling back to basic write: ", e$message)
+        NULL
+      })
+      if (!is.null(result)) return(result)
+    }
+  }
+  
+  # Fallback to basic writexl (no formatting preservation)
+  write_xlsform_basic(xlsform_data, output_path, original_path)
+}
+
+#' Write XLSForm with style preservation using openxlsx
+#' Preserves colors, fonts, column widths, and other formatting from original
+#' @param xlsform_data List from read_xlsform
+#' @param output_path Path for output file
+#' @param original_path Original file path (required)
+#' @return Path to written file
+write_xlsform_styled <- function(xlsform_data, output_path, original_path) {
+  if (!requireNamespace("openxlsx", quietly = TRUE)) {
+    stop("openxlsx package is required for format-preserving export")
+  }
+  
+  # Load original workbook to preserve styles
+  wb <- openxlsx::loadWorkbook(original_path)
+  original_sheets <- openxlsx::sheets(wb)
+  
+  # Update each sheet with new data while keeping formatting
+  for (sheet_name in original_sheets) {
+    sheet_key <- tolower(sheet_name)
+    
+    if (sheet_key %in% names(xlsform_data$sheets)) {
+      df <- xlsform_data$sheets[[sheet_key]]
+      
+      # Remove internal columns before writing
+      internal_cols <- names(df)[startsWith(names(df), ".")]
+      if (length(internal_cols) > 0) {
+        df <- df[, !names(df) %in% internal_cols, drop = FALSE]
+      }
+      
+      if (nrow(df) > 0 && ncol(df) > 0) {
+        # Clear existing data (but keep header row formatting)
+        # Write data starting from row 2 (after header)
+        openxlsx::writeData(
+          wb, 
+          sheet = sheet_name, 
+          x = df, 
+          startRow = 2, 
+          startCol = 1,
+          colNames = FALSE,
+          keepNA = FALSE,
+          na.string = ""
+        )
+        
+        # Update headers if columns changed
+        openxlsx::writeData(
+          wb,
+          sheet = sheet_name,
+          x = as.data.frame(t(names(df))),
+          startRow = 1,
+          startCol = 1,
+          colNames = FALSE
+        )
+      }
+    }
+  }
+  
+  # Add any new sheets that weren't in original
+  new_sheets <- setdiff(names(xlsform_data$sheets), tolower(original_sheets))
+  for (sheet_key in new_sheets) {
+    df <- xlsform_data$sheets[[sheet_key]]
+    
+    # Remove internal columns
+    internal_cols <- names(df)[startsWith(names(df), ".")]
+    if (length(internal_cols) > 0) {
+      df <- df[, !names(df) %in% internal_cols, drop = FALSE]
+    }
+    
+    if (ncol(df) > 0) {
+      # Add new sheet with default styling
+      openxlsx::addWorksheet(wb, sheetName = sheet_key)
+      openxlsx::writeData(wb, sheet = sheet_key, x = df, startRow = 1, colNames = TRUE)
+      
+      # Apply basic header styling
+      header_style <- openxlsx::createStyle(
+        textDecoration = "bold",
+        fgFill = "#D9E1F2",
+        border = "Bottom"
+      )
+      openxlsx::addStyle(wb, sheet = sheet_key, style = header_style, 
+                         rows = 1, cols = 1:ncol(df), gridExpand = TRUE)
+    }
+  }
+  
+  # Save workbook
+  openxlsx::saveWorkbook(wb, output_path, overwrite = TRUE)
+  
+  normalizePath(output_path, winslash = "/")
+}
+
+#' Basic XLSForm write without formatting (using writexl)
+#' @param xlsform_data List from read_xlsform
+#' @param output_path Path for output file
+#' @param original_path Original file path (for sheet order)
+#' @return Path to written file
+write_xlsform_basic <- function(xlsform_data, output_path, original_path = NULL) {
   # Prepare sheets list for writexl
   sheets_to_write <- list()
   

@@ -43,7 +43,7 @@ run_pyxform <- function(xlsform_path, output_path = NULL, config = get_config())
       cmd,
       args,
       error_on_status = FALSE,
-      timeout = 120  # 2 minute timeout
+      timeout = 120
     )
   }, error = function(e) {
     list(

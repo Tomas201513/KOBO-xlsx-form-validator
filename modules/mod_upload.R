@@ -39,7 +39,7 @@ mod_upload_server <- function(id, config) {
       file_name = NULL,
       xlsform_data = NULL,
       validation_results = NULL,
-      status = "idle",  # idle, uploading, validating, success, error
+      status = "idle",
       message = ""
     )
     
@@ -96,6 +96,11 @@ mod_upload_server <- function(id, config) {
         rv$xlsform_data <- NULL
         rv$validation_results <- NULL
       })
+      
+      # Reset the file input after processing to allow re-uploading
+      # Using delay to ensure Shiny finishes processing the current event
+      # Must use session$ns() to get the properly namespaced ID in modules
+      shinyjs::delay(100, shinyjs::reset(session$ns("file")))
     })
     
     # Render status

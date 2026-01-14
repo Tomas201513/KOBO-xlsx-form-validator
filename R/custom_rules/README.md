@@ -1,263 +1,106 @@
-# Custom Validation Rules Guide
+# Custom Validation Rules
 
-A practical guide for writing custom XLSForm validation rules in XLS-Validator.
-
----
-
-## Quick Start
-
-```r
-# 1. Create your rule file: R/custom_rules/my_rule.R
-
-check_my_rule <- function(xlsform_data) {
-  issues <- create_empty_results()
-  
-  # Your validation logic here...
-  
-  issues
-}
-
-register_rule(
-  rule_id = "my_rule",
-  rule_fn = check_my_rule,
-  description = "What this rule checks",
-  level = "warning",
-  enabled = TRUE
-)
-```
+Documentation for the custom XLSForm validation rules in XLS-Validator.
 
 ---
 
-## Input: What You Receive
+## Implemented Rules
 
-Your function receives `xlsform_data`, a named list containing the XLSForm sheets as data frames:
+### 1. No Spaces Inside Constructs (`no_spaces_inside`)
 
-```r
-xlsform_data <- list(
-  survey = data.frame(...),   # Survey questions
-  choices = data.frame(...),  # Choice lists
-  settings = data.frame(...)  # Form settings
-)
-```
+**File:** `no_spaces_inside.R`  
+**Level:** warning  
+**Columns checked:** `name`, `relevant`, `calculation`, `constraint`, `choice_filter`
 
-### Common Columns
+Detects spaces inside:
+- Variable references: `${...)}` (e.g., `${ my_var }`)
+- Double-quoted strings: `"..."` (e.g., `"my choice "`)
+- Single-quoted strings: `'...'` (e.g., `' yes'`)
 
-| Sheet | Key Columns |
-|-------|-------------|
-| `survey` | `type`, `name`, `label`, `hint`, `required`, `relevant`, `constraint`, `calculation` |
-| `choices` | `list_name`, `name`, `label` |
-| `settings` | `form_title`, `form_id`, `version` |
-
-### Accessing Data
-
-```r
-# Get survey sheet
-survey <- xlsform_data$survey
-
-# Check if column exists
-if ("name" %in% names(survey)) {
-  names_col <- survey$name
-}
-
-# Iterate rows
-for (i in seq_len(nrow(survey))) {
-  value <- survey$name[i]
-  # ...
-}
-```
+**Rule IDs:**
+- `R_NO_SPACES_IN_BRACES`
+- `R_NO_SPACES_IN_DOUBLE_QUOTES`
+- `R_NO_SPACES_IN_SINGLE_QUOTES`
 
 ---
 
-## Output: Issue Schema
+### 2. Selected Function Validation (`selected_validation`)
 
-Return a tibble with exactly these 9 columns:
+**File:** `selected_validation.R`  
+**Level:** error  
+**Columns checked:** `name`, `relevant`, `calculation`, `constraint`, `choice_filter`
 
-| Column | Type | Values | Description |
-|--------|------|--------|-------------|
-| `id` | integer | 1, 2, 3... | Unique issue ID |
-| `source` | character | `"custom"` | Auto-set by registry |
-| `level` | character | `"error"`, `"warning"`, `"info"` | Severity |
-| `sheet` | character | `"survey"`, `"choices"`, `"settings"`, `NA` | Which sheet |
-| `row` | integer | 2, 3, 4... or `NA` | Excel row number |
-| `field` | character | Column name or `NA` | Which column |
-| `message` | character | Any string | Human-readable description |
-| `rule_id` | character | Your rule ID | Matches registration |
-| `status` | character | `"open"` | Always "open" for new issues |
+Validates `selected(${var}, 'choice')` expressions:
+- Variable `${var}` must exist in survey
+- Variable must be defined before it is referenced
+- Variable must be `select_one` or `select_multiple` type
+- Choice value must exist in choices sheet under the correct `list_name`
 
-### Row Number Convention
-
-```
-Excel Row 1 = Header row
-Excel Row 2 = First data row (R index 1)
-Excel Row 3 = Second data row (R index 2)
-...
-
-Formula: excel_row = r_index + 1
-```
+**Rule IDs:**
+- `R_SELECTED_VAR_MISSING` - Referenced variable not found
+- `R_SELECTED_REFERENCE_FUTURE` - Variable defined after reference
+- `R_SELECTED_VAR_NOT_SELECT` - Variable is not a select type
+- `R_SELECTED_CHOICE_MISSING` - Choice not found in choices sheet
 
 ---
 
-## Helper Functions
+### 3. Comparison Operators Validation (`comparisons`)
 
-### `create_empty_results()`
-Returns an empty tibble with the correct schema. Always start with this.
+**File:** `comparisons.R`  
+**Level:** error  
+**Columns checked:** `relevant`, `calculation`, `constraint`
 
-```r
-issues <- create_empty_results()
-```
+Validates comparison operators (`>`, `>=`, `<`, `<=`):
+- Checks operand types (dot `.` and `${var}` references)
+- Validates referenced variables exist
+- Ensures operand types are comparable (integer, decimal, date, calculate)
 
-### `create_issue(...)`
-Creates a single issue row with validation.
-
-```r
-new_issue <- create_issue(
-  id = 1,
-  source = "custom",
-  level = "error",
-  sheet = "survey",
-  row = 5,
-  field = "name",
-  message = "Problem description",
-  rule_id = "my_rule",
-  status = "open"
-)
-```
-
-### `register_rule(...)`
-Registers your rule with the system.
-
-```r
-register_rule(
-  rule_id = "my_rule",      # Unique identifier
-  rule_fn = check_my_rule,  # Your function
-  description = "...",      # Shown in settings
-  level = "warning",        # Default severity
-  enabled = TRUE            # Active by default
-)
-```
+**Rule IDs:**
+- `R_COMPARISON_LEFT_VAR_MISSING` - Left operand variable not found
+- `R_COMPARISON_RIGHT_VAR_MISSING` - Right operand variable not found
+- `R_COMPARISON_LEFT_INVALID_TYPE` - Left operand has invalid type for comparison
+- `R_COMPARISON_RIGHT_INVALID_TYPE` - Right operand has invalid type for comparison
+- `R_COMPARISON_REFERENCE_FUTURE_LEFT` - Left operand references future question (optional)
+- `R_COMPARISON_REFERENCE_FUTURE_RIGHT` - Right operand references future question (optional)
 
 ---
 
-## Complete Example
+### 4. Brackets and Connectors Validation (`brackets_connectors`)
 
-```r
-# R/custom_rules/empty_labels.R
-# Checks for questions missing labels
+**File:** `brackets_connectors.R`  
+**Level:** error (brackets), warning (spacing)  
+**Columns checked:** `relevant`, `calculation`, `constraint`
 
-check_empty_labels <- function(xlsform_data) {
-  issues <- create_empty_results()
-  issue_id <- 0
-  
-  # Skip if no survey sheet
-  if (!"survey" %in% names(xlsform_data)) {
-    return(issues)
-  }
-  
-  survey <- xlsform_data$survey
-  
-  # Skip if no label column
-  if (!"label" %in% names(survey)) {
-    return(issues)
-  }
-  
-  # Check each row
-  for (i in seq_len(nrow(survey))) {
-    # Skip notes and groups (they may not need labels)
-    type <- survey$type[i]
-    if (is.na(type)) next
-    if (grepl("^(note|begin|end)", type)) next
-    
-    # Check if label is empty
-    label <- survey$label[i]
-    if (is.na(label) || trimws(label) == "") {
-      issue_id <- issue_id + 1
-      
-      field_name <- if ("name" %in% names(survey)) survey$name[i] else NA
-      
-      issues <- dplyr::bind_rows(issues, create_issue(
-        id = issue_id,
-        source = "custom",
-        level = "warning",
-        sheet = "survey",
-        row = i + 1,  # Convert to Excel row
-        field = "label",
-        message = sprintf("Question '%s' is missing a label", 
-                          ifelse(is.na(field_name), paste("row", i), field_name)),
-        rule_id = "empty_labels",
-        status = "open"
-      ))
-    }
-  }
-  
-  issues
-}
+Validates syntax structure:
+- Balanced parentheses: `(` must have matching `)`
+- Balanced braces: `${` must have matching `}`
+- Connector spacing: `and`/`or` must have exactly one space before and after
+- No extra spaces outside of connector contexts
 
-register_rule(
-  rule_id = "empty_labels",
-  rule_fn = check_empty_labels,
-  description = "Check for questions without labels",
-  level = "warning",
-  enabled = TRUE
-)
-```
+**Rule IDs:**
+- `R_PAREN_UNMATCHED_OPEN` - Opening `(` without closing `)`
+- `R_PAREN_UNMATCHED_CLOSE` - Closing `)` without opening `(`
+- `R_BRACE_UNMATCHED_OPEN` - Opening `${` without closing `}`
+- `R_BRACE_UNMATCHED_CLOSE` - Closing `}` without opening `${`
+- `R_CONNECTOR_SPACING` - Incorrect spacing around `and`/`or`
+- `R_SPACE_OUTSIDE_CONNECTOR` - Space not permitted outside connector context
 
 ---
 
-## Severity Levels
+### 5. Cross-Sheet Reference Validation (`cross_sheet_refs`)
 
-| Level | Use When | UI Color |
-|-------|----------|----------|
-| `"error"` | Form will fail ODK validation or won't work | Red |
-| `"warning"` | Potential problem, form may still work | Yellow |
-| `"info"` | Suggestion or style recommendation | Blue |
+**File:** `cross_sheet_refs.R`  
+**Level:** error (missing), info (orphaned)  
+**Sheets checked:** `survey` (type column), `choices` (list_name column)
 
----
+Validates list_name references between survey and choices:
+- `select_one <list_name>` must reference an existing list in choices
+- `select_multiple <list_name>` must reference an existing list in choices
+- Reports orphaned choice lists that are never referenced (info level)
 
-## Common Patterns
-
-### Check for duplicates
-```r
-name_counts <- table(survey$name[!is.na(survey$name)])
-duplicates <- names(name_counts[name_counts > 1])
-```
-
-### Check for whitespace issues
-```r
-has_leading <- grepl("^\\s", value)
-has_trailing <- grepl("\\s$", value)
-```
-
-### Validate naming conventions
-```r
-# Only alphanumeric and underscores
-is_valid <- grepl("^[a-zA-Z][a-zA-Z0-9_]*$", name)
-```
-
-### Check referenced choice lists exist
-```r
-# Get all list_names from choices
-choice_lists <- unique(xlsform_data$choices$list_name)
-
-# Check select_one/select_multiple references
-for (i in seq_len(nrow(survey))) {
-  type <- survey$type[i]
-  if (grepl("^select_(one|multiple)\\s+", type)) {
-    list_ref <- sub("^select_(one|multiple)\\s+", "", type)
-    if (!list_ref %in% choice_lists) {
-      # Create issue for missing list
-    }
-  }
-}
-```
-
----
-
-## Testing Your Rule
-
-1. Place your `.R` file in `R/custom_rules/`
-2. Restart the Shiny app (rules auto-load on startup)
-3. Go to **Settings** tab to verify your rule appears
-4. Upload a test form to see your issues in the log
+**Rule IDs:**
+- `R_LIST_NAME_MISSING` - Referenced list_name not found in choices sheet
+- `R_ORPHANED_CHOICE_LIST` - Choice list defined but never referenced in survey
 
 ---
 
@@ -265,24 +108,118 @@ for (i in seq_len(nrow(survey))) {
 
 ```
 R/custom_rules/
-├── rule_registry.R      # Core registry (don't modify)
-├── duplicate_names.R    # Template
-├── mandatory_columns.R  # Template
-├── naming_conventions.R # Template
-├── spacing_rules.R      # Template
-└── your_rule.R          # Your custom rules
+├── rule_registry.R          # Core registry system (do not modify)
+├── README.md                 # This documentation
+├── no_spaces_inside.R        # Rule 1: Space detection in constructs
+├── selected_validation.R     # Rule 2: selected() function validation
+├── comparisons.R             # Rule 3: Comparison operator validation
+├── brackets_connectors.R     # Rule 4: Syntax structure validation
+└── cross_sheet_refs.R        # Rule 5: Cross-sheet reference validation
 ```
 
 ---
 
-## Tips
+## Adding New Rules
 
-1. **Always return a tibble** - Even if empty, use `create_empty_results()`
-2. **Handle missing columns** - Check `"column" %in% names(df)` before accessing
-3. **Handle NA values** - Use `is.na()` checks before string operations
-4. **Use descriptive messages** - Include the problematic value in the message
-5. **Keep rules focused** - One rule = one type of check
-6. **Test edge cases** - Empty sheets, missing columns, NA values
+To add a new custom rule:
+
+### 1. Create a new R file
+
+```r
+# R/custom_rules/my_rule.R
+
+check_my_rule <- function(xlsform_data) {
+  # Return empty data.frame with correct schema if no issues
+  if (!"survey" %in% names(xlsform_data)) {
+    return(data.frame(
+      id = integer(0), source = character(0), level = character(0),
+      sheet = character(0), row = integer(0), field = character(0),
+      message = character(0), rule_id = character(0), status = character(0)
+    ))
+  }
+  
+  # Your validation logic here...
+  # Build log_df with issues found
+  
+  log_df
+}
+
+register_rule(
+  rule_id = "my_rule",
+  rule_fn = check_my_rule,
+  description = "Description shown in settings",
+  level = "warning",
+  enabled = TRUE
+)
+```
+
+### 2. Output Schema
+
+Return a data.frame with these 9 columns:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | integer | Unique issue ID (1, 2, 3...) |
+| `source` | character | Always `"custom"` |
+| `level` | character | `"error"`, `"warning"`, or `"info"` |
+| `sheet` | character | `"survey"`, `"choices"`, or `"settings"` |
+| `row` | integer | Excel row number (data row index + 1) |
+| `field` | character | Column name where issue was found |
+| `message` | character | Human-readable description |
+| `rule_id` | character | Unique rule identifier |
+| `status` | character | Always `"open"` for new issues |
+
+### 3. Row Number Convention
+
+```
+Excel Row 1 = Header row
+Excel Row 2 = First data row (R index 1)
+Excel Row 3 = Second data row (R index 2)
+
+Formula: excel_row = r_index + 1
+```
+
+---
+
+## Input Data Structure
+
+Your function receives `xlsform_data`, a named list:
+
+```r
+xlsform_data <- list(
+  survey = data.frame(...),    # Survey questions
+  choices = data.frame(...),   # Choice lists
+  settings = data.frame(...)   # Form settings
+)
+```
+
+### Common Columns
+
+| Sheet | Key Columns |
+|-------|-------------|
+| `survey` | `type`, `name`, `label`, `relevant`, `constraint`, `calculation` |
+| `choices` | `list_name`, `name`, `label` |
+| `settings` | `form_title`, `form_id`, `version` |
+
+---
+
+## Severity Levels
+
+| Level | Use When |
+|-------|----------|
+| `error` | Form will fail validation or won't work correctly |
+| `warning` | Potential problem, form may still work |
+| `info` | Suggestion or style recommendation |
+
+---
+
+## Best Practices
+
+1. **Check for required sheets/columns** before accessing them
+2. **Handle NA values** with `is.na()` checks
+3. **Return empty data.frame** with correct schema when no issues found
+4. **Use descriptive messages** including the problematic value
+5. **Set verbose = FALSE** when calling implementations from wrappers
 
 ---
 
@@ -292,18 +229,8 @@ R/custom_rules/
 
 | Function | Description |
 |----------|-------------|
-| `register_rule(rule_id, rule_fn, description, level, enabled)` | Register a new rule |
+| `register_rule(rule_id, rule_fn, description, level, enabled)` | Register a rule |
 | `list_rules()` | Get data frame of all registered rules |
 | `set_rule_enabled(rule_id, enabled)` | Enable/disable a rule |
 | `get_registered_rules(enabled_only)` | Get rule definitions |
 | `run_custom_rules(xlsform_data)` | Execute all enabled rules |
-
-### Schema Functions
-
-| Function | Description |
-|----------|-------------|
-| `create_empty_results()` | Empty tibble with correct schema |
-| `create_issue(...)` | Create single issue row |
-| `combine_results(...)` | Merge multiple result tibbles |
-| `summarize_results(results)` | Get counts by level/status |
-

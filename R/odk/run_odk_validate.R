@@ -43,7 +43,7 @@ run_odk_validate <- function(xml_path, config = get_config()) {
       config$java_cmd,
       c("-jar", config$odk_validate_jar, xml_path),
       error_on_status = FALSE,
-      timeout = 120,  # 2 minute timeout
+      timeout = 120,
       stderr_to_stdout = FALSE
     )
   }, error = function(e) {
@@ -84,7 +84,7 @@ parse_odk_validate_output <- function(stdout, stderr) {
   
   # Check for success message
   if (grepl("Passes!|passes!|Form is valid", combined_output, ignore.case = TRUE)) {
-    return(issues)  # No issues
+    return(issues)
   }
   
   lines <- strsplit(combined_output, "\n")[[1]]
@@ -124,7 +124,7 @@ parse_odk_validate_output <- function(stdout, stderr) {
       id = issue_id,
       source = "odk",
       level = level,
-      sheet = "survey",  # Most ODK Validate errors relate to survey
+      sheet = "survey",
       row = NA_integer_,
       field = field,
       message = trimws(line),

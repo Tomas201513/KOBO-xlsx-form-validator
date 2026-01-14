@@ -7,8 +7,12 @@ mod_issues_log_ui <- function(id) {
   ns <- shiny::NS(id)
   
   shiny::tagList(
-    # Header with title
-    shiny::tags$h4("Validation Log", class = "mb-3"),
+    # Header with title and loading indicator
+    shiny::div(
+      class = "d-flex align-items-center mb-3",
+      shiny::tags$h4("Validation Log", class = "mb-0 me-2"),
+      shiny::uiOutput(ns("loading_indicator"))
+    ),
     
     # Filters row using flexbox
     shiny::div(
@@ -36,6 +40,16 @@ mod_issues_log_ui <- function(id) {
       shiny::div(
         style = "min-width: 130px;",
         shiny::selectInput(
+          ns("filter_source"),
+          label = "Source",
+          choices = c("All Sources" = "all", "ODK" = "odk", "Custom" = "custom"),
+          selected = "all",
+          width = "100%"
+        )
+      ),
+      shiny::div(
+        style = "min-width: 130px;",
+        shiny::selectInput(
           ns("filter_status"),
           label = "Status",
           choices = c("All Status" = "all", "Open" = "open", "Fixed" = "fixed", "Ignored" = "ignored"),
@@ -45,12 +59,7 @@ mod_issues_log_ui <- function(id) {
       ),
       shiny::div(
         style = "padding-bottom: 0px;",
-        shiny::actionButton(
-          ns("btn_revalidate"),
-          label = "Re-validate",
-          icon = shiny::icon("refresh"),
-          class = "btn-outline-primary"
-        )
+        shiny::uiOutput(ns("revalidate_btn"))
       )
     ),
     # Summary badges
@@ -68,15 +77,43 @@ mod_issues_log_ui <- function(id) {
 
 #' Issues Log Module Server
 #' @param id Module namespace ID
-#' @param validation_results Reactive validation results
+#' @param validation_results Reactive validation results (reactive or reactiveVal)
 #' @param issue_status Reactive values for issue statuses
+#' @param is_revalidating Reactive indicating if re-validation is in progress
 #' @return List with selected_issue reactive
-mod_issues_log_server <- function(id, validation_results, issue_status) {
+mod_issues_log_server <- function(id, validation_results, issue_status, is_revalidating = NULL) {
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
     
     # Selected issue for navigation
     selected_issue <- shiny::reactiveVal(NULL)
+    
+    # Render loading indicator
+    output$loading_indicator <- shiny::renderUI({
+      if (!is.null(is_revalidating) && is_revalidating()) {
+        shiny::span(
+          class = "text-info",
+          shiny::icon("spinner", class = "fa-spin me-1"),
+          "Validating..."
+        )
+      } else {
+        NULL
+      }
+    })
+    
+    # Render re-validate button (can be disabled during validation)
+    output$revalidate_btn <- shiny::renderUI({
+      is_loading <- !is.null(is_revalidating) && is_revalidating()
+      
+      shiny::actionButton(
+        ns("btn_revalidate"),
+        label = if (is_loading) "Validating..." else "Re-validate",
+        icon = shiny::icon(if (is_loading) "spinner" else "refresh", 
+                          class = if (is_loading) "fa-spin" else NULL),
+        class = "btn-outline-primary",
+        disabled = if (is_loading) "disabled" else NULL
+      )
+    })
     
     # Update sheet filter based on results
     shiny::observe({
@@ -139,6 +176,11 @@ mod_issues_log_server <- function(id, validation_results, issue_status) {
         }
       }
       
+      # Filter by source
+      if (!is.null(input$filter_source) && input$filter_source != "all") {
+        issues <- issues[!is.na(issues$source) & issues$source == input$filter_source, ]
+      }
+      
       # Filter by status
       if (!is.null(input$filter_status) && input$filter_status != "all") {
         issues <- issues[issues$status == input$filter_status, ]
@@ -167,6 +209,7 @@ mod_issues_log_server <- function(id, validation_results, issue_status) {
       # Check if filters are active
       is_filtered <- (!is.null(input$filter_level) && input$filter_level != "all") || 
                      (!is.null(input$filter_sheet) && input$filter_sheet != "all") || 
+                     (!is.null(input$filter_source) && input$filter_source != "all") ||
                      (!is.null(input$filter_status) && input$filter_status != "all")
       
       shiny::div(
@@ -195,13 +238,18 @@ mod_issues_log_server <- function(id, validation_results, issue_status) {
       
       # Prepare display data
       display_data <- issues |>
-        dplyr::select(id, level, sheet, row, field, message, status) |>
+        dplyr::select(id, level, source, sheet, row, field, message, status) |>
         dplyr::mutate(
           level = dplyr::case_when(
             level == "error" ~ '<span class="badge bg-danger">ERROR</span>',
             level == "warning" ~ '<span class="badge bg-warning text-dark">WARN</span>',
             level == "info" ~ '<span class="badge bg-info">INFO</span>',
             TRUE ~ level
+          ),
+          source = dplyr::case_when(
+            source == "odk" ~ '<span class="badge bg-primary">ODK</span>',
+            source == "custom" ~ '<span class="badge bg-secondary">Custom</span>',
+            TRUE ~ ifelse(is.na(source), "-", source)
           ),
           status = dplyr::case_when(
             status == "open" ~ '<span class="status-open">&#9675; Open</span>',
@@ -222,18 +270,19 @@ mod_issues_log_server <- function(id, validation_results, issue_status) {
           dom = "lrtip",
           order = list(list(0, "asc")),
           columnDefs = list(
-            list(className = "dt-center", targets = c(0, 1, 2, 3, 6)),
+            list(className = "dt-center", targets = c(0, 1, 2, 3, 4, 7)),
             list(width = "50px", targets = 0),
-            list(width = "80px", targets = 1),
-            list(width = "80px", targets = 2),
-            list(width = "50px", targets = 3),
-            list(width = "100px", targets = 4)
+            list(width = "70px", targets = 1),
+            list(width = "70px", targets = 2),
+            list(width = "70px", targets = 3),
+            list(width = "50px", targets = 4),
+            list(width = "100px", targets = 5)
           )
         ),
         selection = "single",
         rownames = FALSE,
         escape = FALSE,
-        colnames = c("ID", "Level", "Sheet", "Row", "Field", "Message", "Status")
+        colnames = c("ID", "Level", "Source", "Sheet", "Row", "Field", "Message", "Status")
       )
     })
     
@@ -248,7 +297,12 @@ mod_issues_log_server <- function(id, validation_results, issue_status) {
             id = issue$id,
             sheet = issue$sheet,
             row = issue$row,
-            field = issue$field
+            field = issue$field,
+            level = issue$level,
+            source = issue$source,
+            message = issue$message,
+            rule_id = issue$rule_id,
+            status = issue$status
           ))
         }
       }
@@ -260,10 +314,103 @@ mod_issues_log_server <- function(id, validation_results, issue_status) {
       revalidate_trigger(revalidate_trigger() + 1)
     })
     
+    # External trigger for selecting next issue (from cleaning panel Skip button)
+    select_next_issue <- shiny::reactiveVal(0)
+    
+    # Handle external request to select next issue
+    shiny::observeEvent(select_next_issue(), {
+      if (select_next_issue() == 0) return()
+      
+      issues <- filtered_issues()
+      current <- selected_issue()
+      
+      if (is.null(issues) || nrow(issues) == 0) return()
+      
+      # Find current index
+      current_idx <- 1
+      if (!is.null(current) && !is.null(current$id)) {
+        current_idx <- which(issues$id == current$id)
+        if (length(current_idx) == 0) current_idx <- 0
+      }
+      
+      # Get next index
+      next_idx <- current_idx + 1
+      if (next_idx > nrow(issues)) {
+        # Wrap around to first issue
+        next_idx <- 1
+      }
+      
+      # Select the row in DataTable
+      proxy <- DT::dataTableProxy("issues_table")
+      DT::selectRows(proxy, next_idx)
+      
+      # Also update selected_issue directly for immediate feedback
+      issue <- issues[next_idx, ]
+      selected_issue(list(
+        id = issue$id,
+        sheet = issue$sheet,
+        row = issue$row,
+        field = issue$field,
+        level = issue$level,
+        source = issue$source,
+        message = issue$message,
+        rule_id = issue$rule_id,
+        status = issue$status
+      ))
+    }, ignoreInit = TRUE)
+    
+    # External trigger for selecting previous issue
+    select_prev_issue <- shiny::reactiveVal(0)
+    
+    # Handle external request to select previous issue
+    shiny::observeEvent(select_prev_issue(), {
+      if (select_prev_issue() == 0) return()
+      
+      issues <- filtered_issues()
+      current <- selected_issue()
+      
+      if (is.null(issues) || nrow(issues) == 0) return()
+      
+      # Find current index
+      current_idx <- 1
+      if (!is.null(current) && !is.null(current$id)) {
+        current_idx <- which(issues$id == current$id)
+        if (length(current_idx) == 0) current_idx <- 2
+      }
+      
+      # Get previous index
+      prev_idx <- current_idx - 1
+      if (prev_idx < 1) {
+        # Wrap around to last issue
+        prev_idx <- nrow(issues)
+      }
+      
+      # Select the row in DataTable
+      proxy <- DT::dataTableProxy("issues_table")
+      DT::selectRows(proxy, prev_idx)
+      
+      # Also update selected_issue directly for immediate feedback
+      issue <- issues[prev_idx, ]
+      selected_issue(list(
+        id = issue$id,
+        sheet = issue$sheet,
+        row = issue$row,
+        field = issue$field,
+        level = issue$level,
+        source = issue$source,
+        message = issue$message,
+        rule_id = issue$rule_id,
+        status = issue$status
+      ))
+    }, ignoreInit = TRUE)
+    
     # Return values
     return(list(
       selected_issue = selected_issue,
-      revalidate_trigger = revalidate_trigger
+      revalidate_trigger = revalidate_trigger,
+      select_next_issue = select_next_issue,
+      select_prev_issue = select_prev_issue,
+      filtered_issues = filtered_issues
     ))
   })
 }
