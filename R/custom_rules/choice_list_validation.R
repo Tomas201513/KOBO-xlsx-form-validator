@@ -111,7 +111,7 @@ check_choice_list_validation <- function(xlsform_data) {
         if (length(dup_rows) > 1) {
           # Report on second occurrence
           add_issue(
-            level = "error",
+            level = "warning",
             sheet = "choices",
             row = dup_rows[2] + 1,
             field = "name",
@@ -146,7 +146,7 @@ check_choice_list_validation <- function(xlsform_data) {
         for (empty_row in empty_label_rows) {
           choice_name <- if ("name" %in% names(choices)) choices$name[empty_row] else "unknown"
           add_issue(
-            level = "warning",
+            level = "error",
             sheet = "choices",
             row = empty_row + 1,
             field = label_col,
@@ -163,7 +163,7 @@ check_choice_list_validation <- function(xlsform_data) {
   for (orphan in orphaned_lists) {
     first_row <- which(choices$list_name == orphan)[1]
     add_issue(
-      level = "info",
+      level = "warning",
       sheet = "choices",
       row = first_row + 1,
       field = "list_name",

@@ -262,13 +262,10 @@ check_common_syntax_errors <- function(expr) {
   
   # Check for = instead of == in comparisons (outside of assignments)
   # This is tricky because = is valid in some contexts
-  if (grepl("[^=!<>]=[^=]", expr) && !grepl(":=", expr)) {
-    # Check if it's likely a comparison context
-    if (grepl("\\$\\{[^}]+\\}\\s*=\\s*['\"]", expr) || 
-        grepl("\\$\\{[^}]+\\}\\s*=\\s*\\d", expr)) {
-      result$warnings <- c(result$warnings,
-                          "Single '=' may be intended as '==' for comparison")
-    }
+  # Check for == and flag as an error
+  if (grepl("==", expr)) {
+    result$errors <- c(result$errors, "Use '=' for comparisons instead of '=='.")
+    result$valid <- FALSE
   }
   
   # Check for common typos in operators

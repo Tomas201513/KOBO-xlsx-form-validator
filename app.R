@@ -74,7 +74,7 @@ ui <- bslib::page_navbar(
   # Enable shinyjs
   shinyjs::useShinyjs(),
   
-  # About panel
+  # Hone panel
   
   bslib::nav_panel(
     title = "Home",
@@ -152,14 +152,28 @@ ui <- bslib::page_navbar(
         class = "home-card",
         bslib::card_header(
           class = "home-card-header",
-          "Cleaning Log Rules"
+          "Cleaning Log Reviewr"
         ),
         bslib::card_body(
           class = "home-card-body",
           shiny::tags$p(
             class = "rules-intro-text",
-            "Active validation checks for cleaning log review"
-          ),
+            "The tool is designed to help you validate cleaning logs against your KoboToolbox XLSForm structure. ",
+            "It checks for common issues that are listed below.",
+            shiny::tags$br(),
+            shiny::tags$br(),
+            shiny::tags$strong("Note: "),
+            "This tool assumes that the cleaning log follows a specific format with required columns such as ",
+            shiny::tags$code("uuid"),
+            ", ",
+            shiny::tags$code("question"),
+            ", ",
+            shiny::tags$code("change_type"),
+            ", and ",
+            shiny::tags$code("new_value"),
+            "."
+          )
+          ,
           shiny::tags$div(
             class = "rules-table-wrapper",
             DT::DTOutput("rules_tbl")
@@ -209,16 +223,16 @@ ui <- bslib::page_navbar(
         )
       ),
       
-      # Spreadsheet Tab
-      bslib::nav_panel(
-        title = "Spreadsheet",
-        icon = shiny::icon("table"),
-        value = "spreadsheet_tab",
-        shiny::div(
-          class = "tab-content-full",
-          mod_spreadsheet_ui("spreadsheet")
-        )
-      ),
+      # # Spreadsheet Tab
+      # bslib::nav_panel(
+      #   title = "Spreadsheet",
+      #   icon = shiny::icon("table"),
+      #   value = "spreadsheet_tab",
+      #   shiny::div(
+      #     class = "tab-content-full",
+      #     mod_spreadsheet_ui("spreadsheet")
+      #   )
+      # ),
       
       # Cleaning Tab
       bslib::nav_panel(
@@ -739,17 +753,17 @@ server <- function(input, output, session) {
   output$rules_tbl <- DT::renderDT({
     rules <- data.frame(
       `#` = 1:10,
-      Check = c(
-        "Invalid change_type value (must be change_response, blank_response, remove_survey, or no_action)",
-        "new_value should be empty when change_type is blank_response or no_action",
-        "Question in question/answer format doesn't exist in the survey tool",
-        "Question referenced as question/answer is not a select_multiple type",
-        "Choice value doesn't exist in the choice list for select_multiple question/choice logs",
-        "Duplicate change_response or blank_response for same UUID + question",
-        "Conflicting remove_survey with change_response or blank_response for same UUID",
-        "Question in question column doesn't exist in the survey tool",
-        "new_value for select_one doesn't match any option in the choice list",
-        "new_value contains non-numeric data for a numeric question type"
+      Checks = c(
+        "Flag if the value in 'change_type' is not one of: 'change_response', 'blank_response', 'remove_survey', or 'no_action'.",
+        "Flag if 'new_value' is not empty when 'change_type' is 'blank_response' or 'no_action'.",
+        "Flag if the 'question' in 'question/answer' type logs does not exist in the tool or dataset.",
+        "Flag if the question in 'question/answer' type logs is not a select-multiple type when expected.",
+        "Flag if the 'choice' does not exist in the question's choice list for 'question/choice' type logs of multiple choice question.",
+        "Flag if 'change_response' or 'blank_response' actions appear multiple times (twice or in combination) for the same UUID and question.",
+        "Flag if 'remove_survey' occurs together with 'change_response' or 'blank_response' for the same UUID and question.",
+        "Flag if the questions in 'question' column does not exist in the tool.",
+        "Flag if the 'choice' in 'new_value' for select one type does not exist in the tool.",
+        "Flag if numeric questions have non-numeric values in 'new_value'."
       ),
       check.names = FALSE,
       stringsAsFactors = FALSE
