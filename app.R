@@ -95,14 +95,23 @@ ui <- bslib::page_navbar(
         ),
         bslib::card_body(
           class = "home-card-body",
-          
-          # Intro
           shiny::tags$p(
-            class = "intro-text",
-            "Validate, fix, and export ODK XLSForms. Combines pyxform + ODK Validate with extensible R rules."
-          ),
+            class = "rules-intro-text",
+            "The tool has all the functionality of ODK's ",
+            shiny::tags$a(
+              href = "https://getodk.org/xlsform/",
+              target = "_blank",
+              "XLSForm Online"
+            ),
+            " check plus ",
+            shiny::tags$span(
+              style = "color: #0d6efd;",  # Bootstrap blue
+              "custom checks"
+            ),
+            " identified by the tool developers listed in the table below."
+          )
           
-          # What it does
+          ,
           shiny::tags$div(
             class = "section-block",
             shiny::tags$p(class = "section-label", "What it does"),
@@ -115,19 +124,12 @@ ui <- bslib::page_navbar(
             )
           ),
           
-          # Custom rules
-          shiny::tags$div(
-            class = "section-block",
-            shiny::tags$p(class = "section-label", "Custom rules"),
-            shiny::tags$p(
-              class = "section-text",
-              "Add your own checks in ", shiny::tags$code("R/custom_rules/"),
-              ". Implement a ", shiny::tags$code("check_*()"), " function returning a tibble, ",
-              "then register it with ", shiny::tags$code("register_rule()"), "."
-            )
-          ),
+      
           
-          # Footer
+          shiny::tags$div(
+            class = "rules-table-wrapper",
+            DT::DTOutput("rules_tbl_validator")
+          ),
           shiny::tags$div(
             class = "home-footer",
             shiny::tags$span("R Shiny"),
@@ -142,6 +144,11 @@ ui <- bslib::page_navbar(
               "GitHub"
             )
           )
+          
+          
+          
+          
+          
         )
       ),
       
@@ -152,7 +159,7 @@ ui <- bslib::page_navbar(
         class = "home-card",
         bslib::card_header(
           class = "home-card-header",
-          "Cleaning Log Reviewr"
+          "Cleaning Log Reviewer"
         ),
         bslib::card_body(
           class = "home-card-body",
@@ -188,7 +195,7 @@ ui <- bslib::page_navbar(
   
   # Main content panel
   bslib::nav_panel(
-    title = "KOBO xlsx form validator",
+    title = "Kobo XLSForm Validator",
     icon = shiny::icon("file-excel"),
     
     # Upload section - always visible at top
@@ -271,59 +278,63 @@ ui <- bslib::page_navbar(
   
   # Cleaning Log Validator UI
   bslib::nav_panel(
-    title = "Cleaning Log reviewer",
+    title = "Cleaning Log Reviewer",
     icon = shiny::icon("check"),
     
     # =======================
     # TOP TOOLBAR (HORIZONTAL)
     # =======================
-    bslib::card(
-     min_height = "120px",
-      bslib::card_body(
+
         bslib::layout_columns(
-          col_widths = c(3, 3, 3, 3),
+          col_widths = c(4, 4, 2, 2),
           
           fileInput(
             "kobo_file",
-            "Upload KOBO XLSForm",
-            accept = ".xlsx"
+            label = NULL,  # corrected spelling
+            placeholder = "upload kobo xlsform...",
+            accept = c(".xlsx", ".xls", ".xlsm")
           ),
           
           fileInput(
             "cl_file",
-            "Upload Cleaning Log",
-            accept = ".xlsx"
-          ),
-          div(style = "margin-top: 32px;",
+            label = NULL,  # corrected spelling
+            placeholder = "upload cleaning log file...",
+            accept = c(".xlsx", ".xls", ".xlsm")
+          )
+          ,
           actionButton(
             "run_check",
             "Run Validation",
             icon = icon("play"),
             class = "btn-primary w-100"
-          )),
-        div(style = "margin-top: 32px;",
-        
+          ),
+     
           downloadButton(
             "download_log",
             "Download Log",
             class = "btn-success w-100"
-          ))
-        )
-      )
+          )
+
     ),
     
     # =======================
     # STATUS + TABLE (BOTTOM)
     # =======================
     bslib::card(
+      full_screen = TRUE,
+      min_height = "400px",
       bslib::card_header(
-        shiny::icon("clipboard-check"),
-        "Validation Results",
+        # shiny::icon("clipboard-check"),
+        # "Validation Results",
+        uiOutput("status")
       ),
-        uiOutput("status"),
       
       bslib::card_body(
-        DTOutput("log_table") %>% withSpinner()
+        DTOutput("log_table") %>% shinycssloaders::withSpinner(
+          type = 8,
+          color = "#F6F4F0",
+          size = 1
+          )
       )
     )
   )
@@ -611,7 +622,7 @@ server <- function(input, output, session) {
       )
     } else {
       res <- result()
-      if (is.null(res)) return("No validation run yet.")
+      if (is.null(res)) return("Validation Result")
       
       if (res$valid) {
         "✅ Cleaning log is VALID. No issues found."
@@ -748,7 +759,59 @@ server <- function(input, output, session) {
   
   
   
-  
+  output$rules_tbl_validator <- DT::renderDT({
+    rules_df <- data.frame(
+      `#` = 1:28,
+      Checks = c(
+        "Flag if a choice list referenced in a select_one or select_multiple question does not exist in the choices sheet.",
+        "Flag if duplicate choice names exist within the same choice list.",
+        "Flag if a choice list contains empty or missing choice names.",
+        "Flag if a choice has an empty or missing label.",
+        "Flag if a choice list is defined in the choices sheet but never used in the survey.",
+        "Flag if a closing parenthesis ')' appears without a matching opening '(' outside quotes.",
+        "Flag if an opening parenthesis '(' does not have a matching closing ')' outside quotes.",
+        "Flag if a '${' brace does not have a corresponding closing '}' outside quotes.",
+        "Flag if a '}' brace appears without a matching '${' outside quotes.",
+        "Flag if the logical connectors 'and' or 'or' do not have exactly one space immediately before and after (outside quotes).",
+        "Flag if any ASCII space appears outside quotes that is not directly adjacent to an 'and' or 'or' connector.",
+        "Flag if the left operand variable referenced in a comparison (${var}) does not exist in the survey.",
+        "Flag if the right operand variable referenced in a comparison (${var}) does not exist in the survey.",
+        "Flag if the left operand variable in a comparison refers to a question defined after the current row.",
+        "Flag if the right operand variable in a comparison refers to a question defined after the current row.",
+        "Flag if the left operand in a comparison has an invalid type (not one of integer, decimal, date, or calculate).",
+        "Flag if the right operand in a comparison has an invalid type (not one of integer, decimal, date, or calculate).",
+        "Flag if a select_one or select_multiple question references a list_name that does not exist in the choices sheet.",
+        "Flag if a choice list is defined in the choices sheet but is never referenced by any select_one or select_multiple question in the survey.",
+        "Flag if there are spaces inside ${...} constructs in survey columns such as name, relevant, calculation, constraint, or choice_filter.",
+        "Flag if there are spaces inside double-quoted `...` constructs in survey logic fields.",
+        "Flag if there are spaces inside single-quoted '...' constructs in survey logic fields.",
+        " Flag if a variable referenced in `selected(${var}, ...)` does not exist in the survey sheet.",
+        " Flag if a variable is referenced before it is defined (must appear earlier in the survey).",
+        " Flag if a variable used in `selected()` is not of type `select_one` or `select_multiple`.",
+        " Flag if a choice referenced in `selected()` does not exist in the choices sheet under the corresponding `list_name`.",
+        "Flag if an expression contains syntax errors (unbalanced brackets, quotes, empty field references, invalid operators, or unknown functions)",
+        "Flag if an expression contains potential issues or non-critical problems (unknown fields in selected(), possible typos in function names, single '=' in comparisons, spaces inside ${}, wrong number of arguments in functions like if() or coalesce())"
+        
+      ),
+      stringsAsFactors = FALSE
+    )
+    DT::datatable(
+      rules_df,
+      rownames = FALSE,
+      class = "compact stripe",
+      options = list(
+        pageLength = 28,
+        dom = "t",
+        ordering = FALSE,
+        autoWidth = FALSE,
+        columnDefs = list(
+          list(width = "28px", className = "dt-center", targets = 0),
+          list(className = "dt-left", targets = 1)
+        )
+      ),
+      escape = FALSE
+    )
+  })
   
   output$rules_tbl <- DT::renderDT({
     rules <- data.frame(
