@@ -45,7 +45,10 @@ RUN R -e "install.packages(c( \
     'tibble', \
     'stringr', \
     'processx', \
-    'purrr' \
+    'purrr', \
+    'shinycssloaders', \
+    'jsonlite', \
+    'openxlsx' \
   ), repos='https://cloud.r-project.org/')"
 
 # Create app directory

@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# R project files
+*.Rproj
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# renv (packages installed in Docker instead)
+renv/
+renv.lock
+
+# Test files
+tests/
+test_*.xlsx
+
+# Documentation
+README.md
+*.md
+
+# Sample/test forms
+sample_forms/
+my_form.xlsx
+test_form_with_errors.xlsx
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker (avoid copying docker folder into itself)
+docker/
+

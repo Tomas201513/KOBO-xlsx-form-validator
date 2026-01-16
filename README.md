@@ -46,14 +46,55 @@ An R-based validation platform for ODK XLSForms that wraps official ODK tools an
    shiny::runApp()
    ```
 
-### Docker Deployment
+## Docker Setup (Recommended)
+
+Run locally without installing R, Python, or Java manually.
+
+### 1. Install Docker
+
+**Windows:**
+1. Download [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+2. Run installer → Restart PC
+3. Open Docker Desktop (ensure it's running)
+
+**Mac:**
+```bash
+brew install --cask docker
+# Then open Docker from Applications
+```
+
+**Linux (Ubuntu/Debian):**
+```bash
+sudo apt update
+sudo apt install docker.io docker-compose
+sudo systemctl start docker
+sudo usermod -aG docker $USER  # logout/login after
+```
+
+### 2. Run XLS-Validator
 
 ```bash
+# Clone the repo
+git clone https://github.com/Tomas201513/KOBO-xlsx-form-validator.git
+cd KOBO-xlsx-form-validator
+
+# Build and run
 cd docker
 docker-compose up --build
 ```
 
-Access at: http://localhost:3838
+Open: **http://localhost:3838**
+
+### 3. Docker Commands
+
+| Action | Command |
+|--------|---------|
+| Start | `docker-compose up -d` |
+| Stop | `docker-compose down` |
+| Rebuild | `docker-compose up --build` |
+| View logs | `docker-compose logs -f` |
+
+> **Note:** First build takes 5-10 minutes (downloads R packages, Python, Java). Subsequent starts are instant.
 
 ## Project Structure
 

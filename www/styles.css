@@ -4,8 +4,8 @@
 /* ===== General ===== */
 :root {
   /* Primary brand colors */
-  --xls-primary: #58585A;        /* Dark gray - primary text, headers */
-  --xls-accent: #EE5859;         /* Coral red - accent, primary actions */
+  --xls-primary: #EE5859;        /* Dark gray - primary text, headers */
+  --xls-accent: #58585A;         /* Coral red - accent, primary actions */
   
   /* Secondary brand colors */
   --xls-secondary: #D2CBB8;      /* Tan/beige - secondary elements */
@@ -979,20 +979,31 @@ h1, h2, h3, h4, h5, h6,
   color: var(--xls-coral) !important;
 }
 
-.nav-link {
-  color: rgba(255, 255, 255, 0.85) !important;
+.navbar .nav-link,
+.navbar-nav .nav-link,
+.navbar .navbar-nav .nav-link,
+.bslib-page-navbar .nav-link {
+  color: #ffffff !important;
   font-weight: 500;
+  border-bottom: 3px solid transparent !important;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  padding: 0.5rem 1rem !important;
+  opacity: 1 !important;
 }
 
-.nav-link:hover,
-.nav-link.active {
-  color: #fff !important;
-  background-color: rgba(238, 88, 89, 0.2) !important;
+.navbar .nav-link:hover,
+.navbar-nav .nav-link:hover,
+.bslib-page-navbar .nav-link:hover {
+  color: #ffffff !important;
+  background-color: transparent !important;
 }
 
-.nav-link.active {
+.navbar .nav-link.active,
+.navbar-nav .nav-link.active,
+.bslib-page-navbar .nav-link.active {
+  color: var(--xls-coral) !important;
   border-bottom: 3px solid var(--xls-coral) !important;
-  background-color: rgba(238, 88, 89, 0.15) !important;
+  background-color: transparent !important;
 }
 
 /* Primary buttons - Coral accent */
