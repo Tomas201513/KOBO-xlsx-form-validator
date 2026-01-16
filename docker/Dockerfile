@@ -59,14 +59,8 @@ WORKDIR /srv/shiny-server/xls-validator
 # Copy application files
 COPY . .
 
-# Download ODK Validate JAR if not present
-RUN if [ ! -f tools/ODK_Validate.jar ]; then \
-    mkdir -p tools && \
-    curl -L -o tools/ODK_Validate.zip \
-      "https://github.com/getodk/validate/releases/download/v3.0.1/ODK_Validate.zip" && \
-    unzip tools/ODK_Validate.zip -d tools/ && \
-    rm tools/ODK_Validate.zip; \
-  fi
+# Create tools directory (ODK Validate JAR is optional - pyxform handles validation)
+RUN mkdir -p tools
 
 # Set permissions
 RUN chown -R shiny:shiny /srv/shiny-server/xls-validator

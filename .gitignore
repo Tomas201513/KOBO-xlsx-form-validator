@@ -42,8 +42,8 @@ __pycache__/
 # Test output
 tests/output/
 
-# Large binary files (users must download separately)
-tools/ODK_Validate.jar
+# Large binary files
+# (ODK_Validate.jar is now included in repo for Docker deployment)
 
 # Test/sample form files (not needed in repo)
 *.xlsx
