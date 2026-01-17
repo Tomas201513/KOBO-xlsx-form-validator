@@ -50,57 +50,72 @@ mod_upload_server <- function(id, config) {
       rv$status <- "uploading"
       rv$message <- "Processing file..."
       
-      tryCatch({
-        # Get uploaded file info
-        file_info <- input$file
-        temp_path <- file_info$datapath
-        original_name <- file_info$name
-        
-        # Copy to our temp directory
-        cfg <- if (shiny::is.reactive(config)) config() else config
-        safe_path <- copy_to_temp(temp_path, original_name, cfg)
-        
-        rv$file_path <- safe_path
-        rv$file_name <- original_name
-        rv$status <- "validating"
-        rv$message <- "Running validation..."
-        
-        # Run validation
-        results <- validate_xlsform(safe_path, config = cfg)
-        
-        rv$xlsform_data <- results$xlsform_data
-        rv$validation_results <- results
-        
-        # Update status based on results
-        if (results$summary$errors > 0) {
-          rv$status <- "error"
-          rv$message <- sprintf(
-            "%d error(s), %d warning(s) found",
-            results$summary$errors,
-            results$summary$warnings
-          )
-        } else if (results$summary$warnings > 0) {
-          rv$status <- "warning"
-          rv$message <- sprintf(
-            "Valid with %d warning(s)",
-            results$summary$warnings
-          )
-        } else {
-          rv$status <- "success"
-          rv$message <- "Form is valid!"
+      # Use withProgress to allow UI to render loading state
+      shiny::withProgress(
+        message = "Processing XLSForm...",
+        value = 0,
+        {
+          tryCatch({
+            shiny::incProgress(0.1, detail = "Reading file...")
+            
+            # Get uploaded file info
+            file_info <- input$file
+            temp_path <- file_info$datapath
+            original_name <- file_info$name
+            
+            # Copy to our temp directory
+            cfg <- if (shiny::is.reactive(config)) config() else config
+            safe_path <- copy_to_temp(temp_path, original_name, cfg)
+            
+            rv$file_path <- safe_path
+            rv$file_name <- original_name
+            rv$status <- "validating"
+            rv$message <- "Running validation..."
+            
+            shiny::incProgress(0.3, detail = "Running validation checks...")
+            
+            # Run validation
+            results <- validate_xlsform(safe_path, config = cfg)
+            
+            shiny::incProgress(0.5, detail = "Processing results...")
+            
+            rv$xlsform_data <- results$xlsform_data
+            rv$validation_results <- results
+            
+            shiny::incProgress(0.1, detail = "Finalizing...")
+            
+            # Update status based on results
+            if (results$summary$errors > 0) {
+              rv$status <- "error"
+              rv$message <- sprintf(
+                "%d error(s), %d warning(s) found",
+                results$summary$errors,
+                results$summary$warnings
+              )
+            } else if (results$summary$warnings > 0) {
+              rv$status <- "warning"
+              rv$message <- sprintf(
+                "Valid with %d warning(s)",
+                results$summary$warnings
+              )
+            } else {
+              rv$status <- "success"
+              rv$message <- "Form is valid!"
+            }
+            
+          }, error = function(e) {
+            rv$status <- "error"
+            rv$message <- paste("Error:", e$message)
+            rv$xlsform_data <- NULL
+            rv$validation_results <- NULL
+          })
         }
-        
-      }, error = function(e) {
-        rv$status <- "error"
-        rv$message <- paste("Error:", e$message)
-        rv$xlsform_data <- NULL
-        rv$validation_results <- NULL
-      })
+      )
       
       # Reset the file input after processing to allow re-uploading
       # Using delay to ensure Shiny finishes processing the current event
-      # Must use session$ns() to get the properly namespaced ID in modules
-      shinyjs::delay(100, shinyjs::reset(session$ns("file")))
+      # shinyjs::reset() handles namespacing automatically within module context
+      shinyjs::delay(100, shinyjs::reset("file"))
     })
     
     # Render status
