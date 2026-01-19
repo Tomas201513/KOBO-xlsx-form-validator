@@ -8,10 +8,10 @@
 #' @param config Application configuration
 #' @return List with results, xlsform_data, and metadata
 validate_xlsform <- function(
-  xlsform_path,
-  run_odk = TRUE,
-  run_custom = TRUE,
-  config = get_config()
+    xlsform_path,
+    run_odk = TRUE,
+    run_custom = TRUE,
+    config = get_config()
 ) {
   results <- list(
     success = TRUE,
@@ -22,6 +22,10 @@ validate_xlsform <- function(
     summary = list(),
     timestamp = Sys.time()
   )
+  
+  kobo_survey <- read_xlsx(xlsform_path, sheet = "survey") 
+  kobo_choices <- read_xlsx(xlsform_path, sheet = "choices")
+  kobo_form =list(survey = kobo_survey, choices = kobo_choices)
   
   # Step 1: Validate file
   file_check <- validate_upload(xlsform_path, config)
@@ -40,6 +44,9 @@ validate_xlsform <- function(
   # Step 2: Read XLSForm
   tryCatch({
     results$xlsform_data <- read_xlsform(xlsform_path, config)
+    
+    
+    getwd()
   }, error = function(e) {
     results$success <- FALSE
     results$issues <- create_issue(
@@ -87,7 +94,46 @@ validate_xlsform <- function(
   
   # Step 5: Run custom validation rules
   if (run_custom) {
-    custom_issues <- run_custom_rules(results$xlsform_data$sheets)
+    # custom_issues <- run_custom_rules(results$xlsform_data$sheets)
+    
+    
+    
+    custom_issues1 <- check_brackets_connectors_rule(kobo_form)
+    custom_issues2 <- check_choice_list_validation(kobo_form)
+    custom_issues3 <- check_comparisons_rule(kobo_form)
+    custom_issues4 <- check_cross_sheet_refs_rule(kobo_form)
+    custom_issues5 <- check_no_spaces_inside_rule(kobo_form)
+    
+    # custom_issues6 <- check_selected_validation_rule(kobo_form)
+    issues_relevant1 <- validate_selected_for_field(kobo_form, field = "relevant")
+    issues_relevant2 <- validate_selected_for_field(kobo_form, field = "constraint")
+    issues_relevant3 <- validate_selected_for_field(kobo_form, field = "calculation")
+    issues_relevant4 <- validate_selected_for_field(kobo_form, field = "choice_filter")
+    
+    # custom_issues7 <- validate_dollar_refs_for_field(kobo_form)
+    
+    
+    custom_issues <- unique(rbind(
+      custom_issues1
+      ,
+      custom_issues2
+      ,
+      custom_issues3
+      ,
+      custom_issues4
+      ,
+      custom_issues5
+      ,
+      issues_relevant1
+      # ,
+      # custom_issues7
+    ))
+    
+    
+    
+    
+    
+    
     
     if (nrow(custom_issues) > 0) {
       all_issues <- dplyr::bind_rows(all_issues, custom_issues)
@@ -170,7 +216,7 @@ get_errors_only <- function(xlsform_path, config = get_config()) {
 #' @param config Configuration
 #' @return Validation results
 revalidate_xlsform <- function(xlsform_data, tracker, config = get_config()) {
-
+  
   # Create temp file with changes
   download_info <- prepare_download(xlsform_data, tracker, config)
   
@@ -273,7 +319,7 @@ has_structural_changes <- function(tracker) {
   # Check for changes to structural columns that affect validation
   if (!is.null(tracker$changes) && nrow(tracker$changes) > 0) {
     structural_columns <- c("type", "name", "list_name", "calculation", "relevant", 
-                           "constraint", "required", "repeat_count", "choice_filter")
+                            "constraint", "required", "repeat_count", "choice_filter")
     changed_columns <- unique(tracker$changes$column)
     if (any(changed_columns %in% structural_columns)) {
       return(TRUE)
