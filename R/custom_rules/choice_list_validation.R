@@ -16,6 +16,7 @@
 #' @return tibble of validation issues
 check_choice_list_validation <- function(xlsform_data) {
   
+  print(names(xlsform_data))
   print("Running custom rule: choice_list_validation")
   
   issues <- data.frame(

@@ -80,7 +80,10 @@ mod_issues_log_ui <- function(id) {
     shiny::div(
       class = "issues-table-container",
       shinycssloaders::withSpinner(
-        DT::dataTableOutput(ns("issues_table"))
+        DT::dataTableOutput(ns("issues_table")),
+        type = 8,
+        color = "#F6F4F0",
+        size = 1
       )
     )
   )
@@ -233,12 +236,25 @@ mod_issues_log_server <- function(id, validation_results, issue_status, is_reval
       
       shiny::div(
         class = "summary-badges",
-        if (filtered_errors > 0) shiny::span(class = "badge bg-danger", paste(filtered_errors, "Errors")),
-        if (filtered_warnings > 0) shiny::span(class = "badge bg-warning text-dark", paste(filtered_warnings, "Warnings")),
-        if (filtered_info > 0) shiny::span(class = "badge bg-info", paste(filtered_info, "Info")),
-        shiny::span(class = "badge bg-secondary", paste(filtered_total, "Total")),
+        # Conditional badges for errors, warnings, and info
+        shiny::span(if (filtered_errors > 0) {
+          shiny::span(class = "badge" , style = "background-color: red; color: white",
+                      paste(filtered_errors, "Errors"))
+        }),
+        shiny::span(if (filtered_warnings > 0) {
+          shiny::span(class = "badge", style = "background-color: orange; color: black",
+                      paste(filtered_warnings, "Warnings"))
+        }),
+        shiny::span(if (filtered_info > 0) {
+          shiny::span(class = "badge", style = "background-color: #007bff; color: white",
+                      paste(filtered_info, "Info"))
+        }),
+        shiny::span(class = "badge" , style = "background-color: #6c757d; color: white",
+                    paste(filtered_total, "Total")),
+        # Show total results if applicable
         if (is_filtered && filtered_total != total_results$total) {
-          shiny::span(class = "text-muted ms-2", sprintf("(of %d)", total_results$total))
+          shiny::span(class = "text-muted ms-2",
+                      sprintf("(of %d)", total_results$total))
         }
       )
     })
@@ -265,20 +281,20 @@ mod_issues_log_server <- function(id, validation_results, issue_status, is_reval
         dplyr::select(id, level, source, sheet, row, field, message, status) |>
         dplyr::mutate(
           level = dplyr::case_when(
-            level == "error" ~ '<span class="badge bg-danger">ERROR</span>',
-            level == "warning" ~ '<span class="badge bg-warning text-dark">WARN</span>',
-            level == "info" ~ '<span class="badge bg-info">INFO</span>',
+            level == "error" ~ '<span class="badge" style="background-color: red; color: white">ERROR</span>',
+            level == "warning" ~ '<span class="badge" style="background-color: orange; color: black">WARN</span>',
+            level == "info" ~ '<span class="badge" style="background-color: #007bff; color: white">INFO</span>',
             TRUE ~ level
           ),
           source = dplyr::case_when(
-            source == "odk" ~ '<span class="badge bg-primary">ODK</span>',
-            source == "custom" ~ '<span class="badge bg-secondary">Custom</span>',
+            source == "odk" ~ '<span class="badge" style="background-color: #007bff; color: white">ODK</span>',
+            source == "custom" ~ '<span class="badge" style="background-color: #6c757d; color: white">Custom</span>',
             TRUE ~ ifelse(is.na(source), "-", source)
           ),
           status = dplyr::case_when(
-            status == "open" ~ '<span class="status-open">&#9675; Open</span>',
-            status == "fixed" ~ '<span class="status-fixed">&#10003; Fixed</span>',
-            status == "ignored" ~ '<span class="status-ignored">&#8212; Ignored</span>',
+            status == "open" ~ '<span class="status-open" style="color: green;">&#9675; Open</span>',
+            status == "fixed" ~ '<span class="status-fixed" style="color: blue;">&#10003; Fixed</span>',
+            status == "ignored" ~ '<span class="status-ignored" style="color: gray;">&#8212; Ignored</span>',
             TRUE ~ status
           ),
           row = ifelse(is.na(row), "-", as.character(row)),

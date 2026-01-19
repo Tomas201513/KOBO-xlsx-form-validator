@@ -146,7 +146,7 @@ check_xlsform_comparisons <- function(df,
           msg <- sprintf(
             paste0("Comparison left operand variable missing at char %d-%d: %s\n",
                    "Left var '%s' not found in survey.\n",
-                   "Context (chars %d-%d):\n%s\n%s\nNo auto-fix."),
+                   "Context (chars %d-%d):\n%s\nNo auto-fix."),
             start, end, full,
             sub("^\\$\\{", "", sub("\\}$", "", left)),
             ctx$left_index, ctx$right_index, ctx$context, ctx$pointer
@@ -157,7 +157,7 @@ check_xlsform_comparisons <- function(df,
           msg <- sprintf(
             paste0("Comparison right operand variable missing at char %d-%d: %s\n",
                    "Right var '%s' not found in survey.\n",
-                   "Context (chars %d-%d):\n%s\n%s\nNo auto-fix."),
+                   "Context (chars %d-%d):\n%s\nNo auto-fix."),
             start, end, full,
             sub("^\\$\\{", "", sub("\\}$", "", right)),
             ctx$left_index, ctx$right_index, ctx$context, ctx$pointer
@@ -171,7 +171,7 @@ check_xlsform_comparisons <- function(df,
             msg <- sprintf(
               paste0("Comparison left reference to future question at char %d-%d: %s\n",
                      "Left var '%s' is defined at Excel row %d, referenced at row %d.\n",
-                     "Context (chars %d-%d):\n%s\n%s\nNo auto-fix."),
+                     "Context (chars %d-%d):\n%s\nNo auto-fix."),
               start, end, full,
               L$var_name, L$var_row + header_rows, r + header_rows,
               ctx$left_index, ctx$right_index, ctx$context, ctx$pointer
@@ -182,7 +182,7 @@ check_xlsform_comparisons <- function(df,
             msg <- sprintf(
               paste0("Comparison right reference to future question at char %d-%d: %s\n",
                      "Right var '%s' is defined at Excel row %d, referenced at row %d.\n",
-                     "Context (chars %d-%d):\n%s\n%s\nNo auto-fix."),
+                     "Context (chars %d-%d):\n%s\nNo auto-fix."),
               start, end, full,
               R$var_name, R$var_row + header_rows, r + header_rows,
               ctx$left_index, ctx$right_index, ctx$context, ctx$pointer
@@ -196,7 +196,7 @@ check_xlsform_comparisons <- function(df,
           msg <- sprintf(
             paste0("Invalid type for comparison (left operand) at char %d-%d: %s\n",
                    "Left operand kind=%s, type='%s' (allowed: %s).\n",
-                   "Context (chars %d-%d):\n%s\n%s\nNo auto-fix."),
+                   "Context (chars %d-%d):\n%s\nNo auto-fix."),
             start, end, full,
             L$kind, ifelse(is.na(L$type), "NA", L$type), paste(allowed_types, collapse=", "),
             ctx$left_index, ctx$right_index, ctx$context, ctx$pointer
@@ -207,7 +207,7 @@ check_xlsform_comparisons <- function(df,
           msg <- sprintf(
             paste0("Invalid type for comparison (right operand) at char %d-%d: %s\n",
                    "Right operand kind=%s, type='%s' (allowed: %s).\n",
-                   "Context (chars %d-%d):\n%s\n%s\nNo auto-fix."),
+                   "Context (chars %d-%d):\n%s\nNo auto-fix."),
             start, end, full,
             R$kind, ifelse(is.na(R$type), "NA", R$type), paste(allowed_types, collapse=", "),
             ctx$left_index, ctx$right_index, ctx$context, ctx$pointer

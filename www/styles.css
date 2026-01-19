@@ -13,9 +13,9 @@
   
   /* Semantic colors (mapped from brand palette) */
   --xls-success: #58585A;        /* Dark gray for success/complete */
-  --xls-warning: #EE5859;        /* Coral for warnings - high visibility */
+  --xls-warning: #FFF9C4;        /* Coral for warnings - high visibility */
   --xls-danger: #EE5859;         /* Coral for errors */
-  --xls-info: #58585A;           /* Dark gray for info */
+  --xls-info: #BBDEFB;           /* Dark gray for info */
   --xls-muted: #9A9A9C;          /* Light gray for muted text */
   
   /* Coral ramp */

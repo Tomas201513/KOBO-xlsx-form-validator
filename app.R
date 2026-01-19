@@ -39,6 +39,16 @@ source("modules/mod_export.R")
 source("modules/mod_rule_config.R")
 source("modules/mod_cleaning_panel.R")
 
+
+source("R/custom_rules/selected_validation.R")
+source("R/custom_rules/brackets_connectors.R")
+source("R/custom_rules/choice_list_validation.R")
+source("R/custom_rules/comparisons.R")
+source("R/custom_rules/cross_sheet_refs.R")
+source("R/custom_rules/no_spaces_inside.R")
+# source("R/custom_rules/question_validation.R")
+
+
 # Application configuration
 app_config <- get_config()
 
@@ -149,11 +159,7 @@ ui <- bslib::page_navbar(
               "GitHub"
             )
           )
-          
-          
-          
-          
-          
+ 
         )
       ),
       
@@ -196,7 +202,7 @@ ui <- bslib::page_navbar(
   )
   ,
   
-  
+  ##########################################################################################################################################
   
   # Main content panel
   bslib::nav_panel(
@@ -280,7 +286,7 @@ ui <- bslib::page_navbar(
   ),
   
   
-  
+  ##########################################################################################################################################
   # Cleaning Log Reviewr UI
   bslib::nav_panel(
     title = "Cleaning Log Reviewer",

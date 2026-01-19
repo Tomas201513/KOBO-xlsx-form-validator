@@ -1,28 +1,69 @@
-# Custom Rule: Selected Function Validation
-# Validates selected(${var}, 'choice') expressions in XLSForm.
-# Checks variable existence, order, type, and choice validity.
-#
-# Note: Space checking is handled by no_spaces_inside.R rule.
-# This rule focuses only on selected() function validation.
 
-# =============================================================================
-# validate_selected_calls()
-# - Validates selected(${var}, 'choice'):
-#     * var exists and appears BEFORE the referencing row
-#     * var type is select_one/select_multiple (extract list_name)
-#     * choice exists in choices sheet under that list_name
-# - Produces a log data frame with columns:
-#     id, source, level, sheet, row, field, message, rule_id
-# =============================================================================
 validate_selected_calls <- function(survey_df,
                                     choices_df,
                                     cols = c("relevant", "calculation", "constraint", "choice_filter"),
                                     header_rows = 1L,
                                     sheet_name = "survey",
                                     verbose = TRUE) {
+  # ---------- Helpers ----------
+  clean_token <- function(x) {
+    if (is.null(x)) return(NA_character_)
+    x <- as.character(x)
+    x <- gsub("\u00A0|\u2007|\u202F", " ", x, perl = TRUE)  # NBSP and friends -> space
+    x <- trimws(gsub("\\s+", " ", x, perl = TRUE))
+    x
+  }
+  normalize_expr <- function(x) {
+    if (is.null(x)) return(NA_character_)
+    x <- as.character(x)
+    x <- gsub("\u2018|\u2019", "'", x, perl = TRUE)         # smart single quotes -> '
+    x <- gsub("\u201C|\u201D", "\"", x, perl = TRUE)        # smart double quotes -> "
+    x <- gsub("\u00A0|\u2007|\u202F", " ", x, perl = TRUE)  # NBSP etc -> space
+    x
+  }
+  extract_selected_calls <- function(s) {
+    if (is.na(s) || s == "") {
+      return(data.frame(var=character(0), choice=character(0), match=character(0), stringsAsFactors = FALSE))
+    }
+    # Case-insensitive selected(), handle both ' and " (already normalized)
+    pattern <- "(?i)selected\\s*\\(\\s*\\$\\{\\s*([^}\\s]+)\\s*\\}\\s*,\\s*(['\"])([^'\"]+)\\2\\s*\\)"
+    m <- gregexpr(pattern, s, perl = TRUE)
+    reg <- regmatches(s, m)
+    out <- data.frame(var=character(0), choice=character(0), match=character(0), stringsAsFactors = FALSE)
+    if (length(reg) && length(reg[[1]]) > 0) {
+      for (call in reg[[1]]) {
+        var    <- clean_token(sub(pattern, "\\1", call, perl = TRUE))
+        choice <- clean_token(sub(pattern, "\\3", call, perl = TRUE))
+        out <- rbind(out, data.frame(var = var, choice = choice, match = call, stringsAsFactors = FALSE))
+      }
+    }
+    out
+  }
+  # NEW: extract all ${...} variable references (regardless of function)
+  extract_var_refs <- function(s) {
+    if (is.na(s) || s == "") return(character(0))
+    patt <- "\\$\\{\\s*([^}\\s]+)\\s*\\}"
+    m <- gregexpr(patt, s, perl = TRUE)
+    reg <- regmatches(s, m)
+    if (!length(reg) || length(reg[[1]]) == 0) return(character(0))
+    refs <- vapply(reg[[1]], function(tok) {
+      clean_token(sub(patt, "\\1", tok, perl = TRUE))
+    }, character(1))
+    unique(refs)
+  }
+  parse_list_name_from_type <- function(type_str) {
+    if (is.na(type_str) || type_str == "") return(NA_character_)
+    t <- clean_token(type_str)
+    if (grepl("^select_one\\b", t)) {
+      clean_token(sub("^select_one\\s+", "", t))
+    } else if (grepl("^select_multiple\\b", t)) {
+      clean_token(sub("^select_multiple\\s+", "", t))
+    } else {
+      NA_character_
+    }
+  }
   
   # ---------- Basic validation ----------
-  # Filter to only columns that exist
   cols <- intersect(cols, names(survey_df))
   if (length(cols) == 0) {
     if (verbose) message("No target columns found in survey.")
@@ -39,68 +80,32 @@ validate_selected_calls <- function(survey_df,
     }
   }
   
-  # Work on character copies
-  survey_df[cols] <- lapply(survey_df[cols], function(x) {
-    if (is.factor(x)) as.character(x) else as.character(x)
-  })
-  if ("type" %in% names(survey_df)) {
-    survey_df$type <- if (is.factor(survey_df$type)) as.character(survey_df$type) else survey_df$type
-  }
-  if ("name" %in% names(survey_df)) {
-    survey_df$name <- if (is.factor(survey_df$name)) as.character(survey_df$name) else survey_df$name
-  }
+  # Normalize core columns
+  if ("type" %in% names(survey_df))  survey_df$type <- clean_token(survey_df$type)
+  if ("name" %in% names(survey_df))  survey_df$name <- clean_token(survey_df$name)
   
-  # ---------- selected(${var}, 'choice') extraction ----------
-  extract_selected_calls <- function(s) {
-    if (is.na(s) || s == "") return(data.frame(var=character(0), choice=character(0), match=character(0)))
-    pattern <- "selected\\s*\\(\\s*\\$\\{\\s*([^}\\s]+)\\s*\\}\\s*,\\s*(['\"])([^'\"]+)\\2\\s*\\)"
-    m <- gregexpr(pattern, s, perl = TRUE)
-    reg <- regmatches(s, m)
-    out <- data.frame(var=character(0), choice=character(0), match=character(0), stringsAsFactors = FALSE)
-    if (length(reg) && length(reg[[1]]) > 0) {
-      for (call in reg[[1]]) {
-        var <- sub(pattern, "\\1", call, perl = TRUE)
-        choice <- sub(pattern, "\\3", call, perl = TRUE)
-        out <- rbind(out, data.frame(var = var, choice = choice, match = call, stringsAsFactors = FALSE))
-      }
-    }
-    out
-  }
+  # Normalize target expression columns (quotes & spaces)
+  survey_df[cols] <- lapply(survey_df[cols], function(x) normalize_expr(if (is.factor(x)) as.character(x) else x))
   
-  # Parse list_name from type (e.g., "select_one l_place" -> "l_place")
-  parse_list_name_from_type <- function(type_str) {
-    if (is.na(type_str) || type_str == "") return(NA_character_)
-    t <- gsub("\\s+", " ", trimws(type_str))
-    if (grepl("^select_one\\b", t)) {
-      sub("^select_one\\s+", "", t)
-    } else if (grepl("^select_multiple\\b", t)) {
-      sub("^select_multiple\\s+", "", t)
-    } else {
-      NA_character_
-    }
-  }
+  # Normalize choices
+  choices_df$list_name <- clean_token(choices_df$list_name)
+  choices_df$name      <- clean_token(choices_df$name)
   
   # ---------- Prepare lookups ----------
   df <- survey_df
+  valid_names <- unique(na.omit(clean_token(df$name)))
+  list_name_by_name <- if ("type" %in% names(df)) vapply(df$type, parse_list_name_from_type, character(1)) else rep(NA_character_, nrow(df))
   
-  # Row index map for name -> first occurrence row
-  name_to_row <- setNames(seq_len(nrow(df)), df$name)
-  
-  # Precompute each question's list_name if select_one/select_multiple
-  list_name_by_name <- rep(NA_character_, nrow(df))
-  if ("type" %in% names(df)) {
-    list_name_by_name <- vapply(df$type, parse_list_name_from_type, character(1))
-  }
-  name_to_list <- setNames(list_name_by_name, df$name)
-  
-  # Choices lookup: set of "list_name|choice"
   key_choices <- paste(choices_df$list_name, choices_df$name, sep = "|")
   choices_set <- unique(key_choices)
+  
+  # Whitelist of common metadata/system fields often referenced with ${...}
+  meta_names <- c("start","end","today","deviceid","subscriberid","simserial","phonenumber",
+                  "username","email","survey","starttime","endtime","_index","instanceID")
   
   # ---------- Logging ----------
   log_entries <- list()
   log_id <- 1L
-  
   append_log <- function(level, row_idx, field, message, rule_id) {
     log_entries[[log_id]] <<- data.frame(
       id = log_id,
@@ -116,53 +121,96 @@ validate_selected_calls <- function(survey_df,
     log_id <<- log_id + 1L
   }
   
-  # ---------- Scan columns for selected() calls ----------
+  # ---------- Scan columns for selected() calls and generic ${...} refs ----------
   for (col in cols) {
     values <- df[[col]]
     for (r in seq_along(values)) {
       value <- values[r]
       if (is.na(value) || value == "") next
       
-      # Extract and validate selected() calls
+      # 1) Handle valid selected(${var}, 'choice') calls
       calls <- extract_selected_calls(value)
+      selected_vars <- character(0)
       if (nrow(calls) > 0) {
+        selected_vars <- unique(calls$var)
         for (k in seq_len(nrow(calls))) {
           var <- calls$var[k]
           choice <- calls$choice[k]
           
           # Check: is var defined?
-          var_row <- name_to_row[var]
-          if (is.na(var_row)) {
+          if (!var %in% valid_names) {
+            # allow metadata names too? (selected(meta, 'x') is unlikely, still flag)
             append_log("error", r, col,
                        sprintf("Question '%s' is not defined in survey.", var),
                        "R_SELECTED_VAR_MISSING")
             next
           }
+          var_row <- match(var, df$name) # first occurrence
           
           # Check: is var defined before this row?
-          if (var_row >= r) {
+          if (var_row > r) {
             append_log("error", r, col,
                        sprintf("Question '%s' is defined at row %d, but referenced at row %d (must be earlier).",
                                var, var_row + header_rows, r + header_rows),
                        "R_SELECTED_REFERENCE_FUTURE")
           }
           
+          if (var_row == r) {
+            append_log("warning", r, col,
+                       sprintf("Question '%s' is defined at row %d, but referenced at row %d (Check if it is intentional).",
+                               var, var_row + header_rows, r + header_rows),
+                       "R_SELECTED_REFERENCE_SAME_LINE")
+          }
+          
           # Check: is var a select_one or select_multiple?
           var_type <- if ("type" %in% names(df)) df$type[var_row] else NA_character_
-          list_nm <- name_to_list[var]
+          list_nm  <- list_name_by_name[var_row]   # row-based!
           if (is.na(list_nm) || list_nm == "") {
             append_log("error", r, col,
                        sprintf("Question '%s' is not select_one/select_multiple (type='%s').", var, var_type),
                        "R_SELECTED_VAR_NOT_SELECT")
-            next
+            # do not 'next' so we still check choice presence (will show missing under NA list_name)
           }
           
           # Check: does choice exist in choices sheet under that list_name?
           key <- paste(list_nm, choice, sep = "|")
           if (!(key %in% choices_set)) {
-            append_log("warning", r, col,
+            append_log("error", r, col,
                        sprintf("Choice '%s' not found under list_name '%s' in choices sheet.", choice, list_nm),
                        "R_SELECTED_CHOICE_MISSING")
+          }
+        }
+      }
+      
+      # 2) NEW: Validate ALL ${...} references (beyond selected())
+      all_refs <- extract_var_refs(value)
+      # Exclude those already validated via selected()
+      other_refs <- setdiff(all_refs, selected_vars)
+      if (length(other_refs) > 0) {
+        for (vr in other_refs) {
+          # Skip known metadata/system fields
+          if (vr %in% meta_names) next
+          
+          # Existence
+          if (!vr %in% valid_names) {
+            append_log("error", r, col,
+                       sprintf("Reference '%s' is not defined in survey.", vr),
+                       "R_REF_VAR_MISSING")
+            next
+          }
+          # Order
+          vr_row <- match(vr, df$name)
+          if (vr_row > r) {
+            append_log("error", r, col,
+                       sprintf("Reference '%s' is defined at row %d, but referenced at row %d (must be earlier).",
+                               vr, vr_row + header_rows, r + header_rows),
+                       "R_REF_REFERENCE_FUTURE")
+          }
+          if (vr_row == r) {
+            append_log("warning", r, col,
+                       sprintf("Reference '%s' is defined at row %d, but referenced at row %d (Check if it is intentional).",
+                               vr, vr_row + header_rows, r + header_rows),
+                       "R_REF_REFERENCE_SAME_LINE")
           }
         }
       }
@@ -182,9 +230,9 @@ validate_selected_calls <- function(survey_df,
   
   if (verbose) {
     if (all_ok) {
-      message("All selected() calls are valid.")
+      message("All selected() calls and ${...} references are valid.")
     } else {
-      message(sprintf("%d selected() validation issue(s) found.", nrow(log_df)))
+      message(sprintf("%d validation issue(s) found in selected() and ${...} references.", nrow(log_df)))
     }
   }
   
@@ -192,70 +240,68 @@ validate_selected_calls <- function(survey_df,
 }
 
 
+
 # =============================================================================
 # Wrapper for XLS-Validator rule system
 # =============================================================================
 
-#' Validate selected() function calls (wrapper for XLS-Validator)
-#' @param xlsform_data List containing survey, choices, settings data frames
-#' @return tibble of validation issues following the schema
-check_selected_validation_rule <- function(xlsform_data) {
-  # Check if required sheets exist
-  if (!"survey" %in% names(xlsform_data) || is.null(xlsform_data$survey)) {
-    return(data.frame(
-      id = integer(0), source = character(0), level = character(0),
-      sheet = character(0), row = integer(0), field = character(0),
-      message = character(0), rule_id = character(0), status = character(0)
-    ))
+#' Run selected() validation for a single field
+#' @param xlsform_data List with $survey and $choices data frames
+#' @param field One of "relevant", "calculation", "constraint", "choice_filter"
+#' @param header_rows Header rows count in the survey sheet (default 1)
+#' @param sheet_name The name of the survey sheet (default "survey")
+#' @return data.frame of validation issues (schema: id, source, level, sheet, row, field, message, rule_id, status)
+validate_selected_for_field <- function(xlsform_data,
+                                        field = c("relevant", "calculation", "constraint", "choice_filter"),
+                                        header_rows = 1L,
+                                        sheet_name = "survey") {
+  field <- match.arg(field)
+  
+  # Ensure required sheets exist
+  if (!("survey" %in% names(xlsform_data)) || is.null(xlsform_data$survey)) {
+    stop("xlsform_data$survey is missing.")
+  }
+  if (!("choices" %in% names(xlsform_data)) || is.null(xlsform_data$choices)) {
+    stop("xlsform_data$choices is missing.")
   }
   
-  if (!"choices" %in% names(xlsform_data) || is.null(xlsform_data$choices)) {
-    return(data.frame(
-      id = integer(0), source = character(0), level = character(0),
-      sheet = character(0), row = integer(0), field = character(0),
-      message = character(0), rule_id = character(0), status = character(0)
-    ))
-  }
-  
-  survey_df <- xlsform_data$survey
+  survey_df  <- xlsform_data$survey
   choices_df <- xlsform_data$choices
   
-  # Check required columns in choices
-  if (!all(c("list_name", "name") %in% names(choices_df))) {
+  # Ensure requested field exists in survey
+  if (!(field %in% names(survey_df))) {
+    # Return empty schema with correct columns
     return(data.frame(
       id = integer(0), source = character(0), level = character(0),
       sheet = character(0), row = integer(0), field = character(0),
-      message = character(0), rule_id = character(0), status = character(0)
+      message = character(0), rule_id = character(0), status = character(0),
+      stringsAsFactors = FALSE
     ))
   }
   
-  # Columns to check for selected() calls
-  target_cols <- c("relevant", "calculation", "constraint", "choice_filter")
-  
-  # Call the implementation
+  # Call your implementation with only that column
   result <- validate_selected_calls(
     survey_df = survey_df,
     choices_df = choices_df,
-    cols = target_cols,
-    header_rows = 1L,
-    sheet_name = "survey",
+    cols = field,                 # <--- single column here
+    header_rows = header_rows,
+    sheet_name = sheet_name,
     verbose = FALSE
   )
   
   log_df <- result$log
-  
-  # Add status column if missing
   if (nrow(log_df) > 0 && !"status" %in% names(log_df)) {
     log_df$status <- "open"
   }
   
-  # Return empty with correct schema if no issues
-  if (nrow(log_df) == 0) {
-    return(data.frame(
+  # Ensure schema if empty
+  if (nrow(log_df) == 0L) {
+    log_df <- data.frame(
       id = integer(0), source = character(0), level = character(0),
       sheet = character(0), row = integer(0), field = character(0),
-      message = character(0), rule_id = character(0), status = character(0)
-    ))
+      message = character(0), rule_id = character(0), status = character(0),
+      stringsAsFactors = FALSE
+    )
   }
   
   log_df
@@ -264,7 +310,7 @@ check_selected_validation_rule <- function(xlsform_data) {
 # Register rule
 register_rule(
   rule_id = "selected_validation",
-  rule_fn = check_selected_validation_rule,
+  rule_fn = validate_selected_for_field,
   description = "Validate selected() function calls: variable existence, order, type, and choice validity",
   level = "error",
   enabled = TRUE
