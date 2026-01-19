@@ -276,7 +276,7 @@ ui <- bslib::page_navbar(
  
 
   
-  # Cleaning Log Validator UI
+  # Cleaning Log Reviewr UI
   bslib::nav_panel(
     title = "Cleaning Log Reviewer",
     icon = shiny::icon("check"),
@@ -323,6 +323,7 @@ ui <- bslib::page_navbar(
     bslib::card(
       full_screen = TRUE,
       min_height = "400px",
+
       bslib::card_header(
         # shiny::icon("clipboard-check"),
         # "Validation Results",

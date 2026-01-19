@@ -106,21 +106,21 @@ mod_upload_server <- function(id, config) {
     # Render status
     output$status <- shiny::renderUI({
       icon_class <- switch(rv$status,
-        "idle" = "info-circle",
-        "uploading" = "spinner fa-spin",
-        "validating" = "spinner fa-spin",
-        "success" = "check-circle",
-        "warning" = "exclamation-triangle",
-        "error" = "times-circle"
+                           "idle" = "info-circle",
+                           "uploading" = "spinner fa-spin",
+                           "validating" = "spinner fa-spin",
+                           "success" = "check-circle",
+                           "warning" = "exclamation-triangle",
+                           "error" = "times-circle"
       )
       
       status_class <- switch(rv$status,
-        "idle" = "text-muted",
-        "uploading" = "text-info",
-        "validating" = "text-info",
-        "success" = "text-success",
-        "warning" = "text-warning",
-        "error" = "text-danger"
+                             "idle" = "text-muted",
+                             "uploading" = "text-info",
+                             "validating" = "text-info",
+                             "success" = "text-success",
+                             "warning" = "text-warning",
+                             "error" = "text-danger"
       )
       
       if (rv$status == "idle") {
@@ -153,4 +153,3 @@ trigger_revalidation <- function(upload_module, xlsform_data, config) {
   # This would be called from the main app when re-validation is needed
   # Implementation depends on how the main app handles state
 }
-
