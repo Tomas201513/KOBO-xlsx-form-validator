@@ -97,52 +97,17 @@ ui <- bslib::page_navbar(
           class = "home-card-body",
           shiny::tags$p(
             class = "rules-intro-text",
-            "The tool has all the functionality of ODK's ",
-            shiny::tags$a(
-              href = "https://getodk.org/xlsform/",
-              target = "_blank",
-              "XLSForm Online"
-            ),
-            " check plus ",
-            shiny::tags$span(
-              style = "color: #0d6efd;",  # Bootstrap blue
-              "custom checks"
-            ),
-            " identified by the tool developers listed in the table below."
-          )
-          
-          ,
-          shiny::tags$div(
-            class = "section-block",
-            shiny::tags$p(class = "section-label", "What it does"),
-            shiny::tags$ul(
-              class = "feature-list",
-              shiny::tags$li("Upload XLSForm files for instant validation"),
-              shiny::tags$li("Navigate directly to issue rows in the spreadsheet"),
-              shiny::tags$li("Edit cells in-browser and apply fixes"),
-              shiny::tags$li("Export corrected forms ready for deployment")
-            )
+            "The XLSForm Validator first runs ODK online validation (pyxform + ODK Validate), ",
+            "then applies custom R-based validation rules for deeper checks.",
+            shiny::tags$br(),
+            shiny::tags$br(),
+            shiny::tags$strong("Note: "),
+            "ODK validation catches form structure and XML conversion errors. ",
+            "Custom rules below provide additional XLSForm-specific checks."
           ),
-          
-      
-          
           shiny::tags$div(
             class = "rules-table-wrapper",
-            DT::DTOutput("rules_tbl_validator")
-          ),
-          shiny::tags$div(
-            class = "home-footer",
-            shiny::tags$span("R Shiny"),
-            shiny::tags$span(class = "separator", "/"),
-            shiny::tags$span("pyxform"),
-            shiny::tags$span(class = "separator", "/"),
-            shiny::tags$span("ODK Validate"),
-            shiny::tags$span(class = "separator", "\u00B7"),
-            shiny::tags$a(
-              href = "https://github.com/Tomas201513/KOBO-xlsx-form-validator",
-              target = "_blank",
-              "GitHub"
-            )
+            DT::DTOutput("xlsform_rules_tbl")
           )
           
           
@@ -391,7 +356,8 @@ server <- function(input, output, session) {
     "issues",
     validation_results = shared_validation_results,
     issue_status = issue_status,
-    is_revalidating = revalidating
+    is_revalidating = revalidating,
+    upload_status = upload$status
   )
   
   # Spreadsheet module - uses working_data for live edits
@@ -814,20 +780,42 @@ server <- function(input, output, session) {
     )
   })
   
-  output$rules_tbl <- DT::renderDT({
+  # XLSForm Validator rules table
+  output$xlsform_rules_tbl <- DT::renderDT({
     rules <- data.frame(
-      `#` = 1:10,
+      `#` = 1:23,
       Checks = c(
-        "Flag if the value in 'change_type' is not one of: 'change_response', 'blank_response', 'remove_survey', or 'no_action'.",
-        "Flag if 'new_value' is not empty when 'change_type' is 'blank_response' or 'no_action'.",
-        "Flag if the 'question' in 'question/answer' type logs does not exist in the tool or dataset.",
-        "Flag if the question in 'question/answer' type logs is not a select-multiple type when expected.",
-        "Flag if the 'choice' does not exist in the question's choice list for 'question/choice' type logs of multiple choice question.",
-        "Flag if 'change_response' or 'blank_response' actions appear multiple times (twice or in combination) for the same UUID and question.",
-        "Flag if 'remove_survey' occurs together with 'change_response' or 'blank_response' for the same UUID and question.",
-        "Flag if the questions in 'question' column does not exist in the tool.",
-        "Flag if the 'choice' in 'new_value' for select one type does not exist in the tool.",
-        "Flag if numeric questions have non-numeric values in 'new_value'."
+        # ODK Validation (pyxform + ODK Validate)
+        "Run pyxform to convert XLSForm to XForm and catch conversion errors.",
+        "Run ODK Validate JAR to verify XML form structure and XPath expressions.",
+        # Choice List Validation
+        "Flag if a choice list referenced in select_one/select_multiple does not exist in choices sheet.",
+        "Flag if duplicate choice names exist within the same choice list.",
+        "Flag if a choice list contains empty or missing choice names.",
+        "Flag if a choice has an empty or missing label.",
+        "Flag if a choice list is defined but never used in the survey (orphaned).",
+        # Brackets and Connectors
+        "Flag if parentheses '(' and ')' are unbalanced outside quotes.",
+        "Flag if '${' and '}' braces are unbalanced outside quotes.",
+        "Flag if 'and'/'or' connectors lack exactly one space before and after (outside quotes).",
+        "Flag if unexpected spaces appear outside quotes (not adjacent to connectors).",
+        # Comparisons
+        "Flag if a variable in comparison operators (>, >=, <, <=) does not exist in survey.",
+        "Flag if a variable in comparison refers to a question defined after the current row.",
+        "Flag if an operand in comparison has invalid type (not integer, decimal, date, or calculate).",
+        # Cross-Sheet References
+        "Flag if select_one/select_multiple references a list_name missing from choices sheet.",
+        "Flag if a choice list in choices sheet is never referenced in survey.",
+        # No Spaces Inside
+        "Flag if spaces appear inside ${...} constructs in survey logic columns.",
+        "Flag if spaces appear inside quoted strings in survey logic fields.",
+        # Selected Validation
+        "Flag if variable in selected(${var}, ...) does not exist or is defined after current row.",
+        "Flag if variable in selected() is not select_one or select_multiple type.",
+        "Flag if choice in selected() does not exist in choices sheet under the list_name.",
+        # Expression Validation
+        "Flag if expressions have syntax errors (unbalanced brackets, invalid operators, unknown functions).",
+        "Flag if expressions have potential issues (typos, single '=' comparisons, wrong argument counts)."
       ),
       check.names = FALSE,
       stringsAsFactors = FALSE
@@ -838,7 +826,63 @@ server <- function(input, output, session) {
       rownames = FALSE,
       class = "compact stripe",
       options = list(
-        pageLength = 10,
+        pageLength = 25,
+        dom = "t",
+        ordering = FALSE,
+        autoWidth = FALSE,
+        columnDefs = list(
+          list(width = "28px", className = "dt-center", targets = 0),
+          list(className = "dt-left", targets = 1)
+        )
+      ),
+      escape = FALSE
+    )
+  })
+  
+  # Cleaning Log Reviewer rules table
+  output$rules_tbl <- DT::renderDT({
+    rules <- data.frame(
+      `#` = 1:28,
+      Checks = c(
+        "Flag if a choice list referenced in a select_one or select_multiple question does not exist in the choices sheet.",
+        "Flag if duplicate choice names exist within the same choice list.",
+        "Flag if a choice list contains empty or missing choice names.",
+        "Flag if a choice has an empty or missing label.",
+        "Flag if a choice list is defined in the choices sheet but never used in the survey.",
+        "Flag if a closing parenthesis ')' appears without a matching opening '(' outside quotes.",
+        "Flag if an opening parenthesis '(' does not have a matching closing ')' outside quotes.",
+        "Flag if a '${' brace does not have a corresponding closing '}' outside quotes.",
+        "Flag if a '}' brace appears without a matching '${' outside quotes.",
+        "Flag if the logical connectors 'and' or 'or' do not have exactly one space immediately before and after (outside quotes).",
+        "Flag if any ASCII space appears outside quotes that is not directly adjacent to an 'and' or 'or' connector.",
+        "Flag if the left operand variable referenced in a comparison (${var}) does not exist in the survey.",
+        "Flag if the right operand variable referenced in a comparison (${var}) does not exist in the survey.",
+        "Flag if the left operand variable in a comparison refers to a question defined after the current row.",
+        "Flag if the right operand variable in a comparison refers to a question defined after the current row.",
+        "Flag if the left operand in a comparison has an invalid type (not one of integer, decimal, date, or calculate).",
+        "Flag if the right operand in a comparison has an invalid type (not one of integer, decimal, date, or calculate).",
+        "Flag if a select_one or select_multiple question references a list_name that does not exist in the choices sheet.",
+        "Flag if a choice list is defined in the choices sheet but is never referenced by any select_one or select_multiple question in the survey.",
+        "Flag if there are spaces inside ${...} constructs in survey columns such as name, relevant, calculation, constraint, or choice_filter.",
+        "Flag if there are spaces inside double-quoted \"...\" constructs in survey logic fields.",
+        "Flag if there are spaces inside single-quoted '...' constructs in survey logic fields.",
+        "Flag if a variable referenced in `selected(${var}, ...)` does not exist in the survey sheet.",
+        "Flag if a variable is referenced before it is defined (must appear earlier in the survey).",
+        "Flag if a variable used in `selected()` is not of type `select_one` or `select_multiple`.",
+        "Flag if a choice referenced in `selected()` does not exist in the choices sheet under the corresponding `list_name`.",
+        "Flag if an expression contains syntax errors (unbalanced brackets, quotes, empty field references, invalid operators, or unknown functions).",
+        "Flag if an expression contains potential issues or non-critical problems (unknown fields in selected(), possible typos in function names, single '=' in comparisons, spaces inside ${}, wrong number of arguments in functions like if() or coalesce())."
+      ),
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    )
+    
+    DT::datatable(
+      rules,
+      rownames = FALSE,
+      class = "compact stripe",
+      options = list(
+        pageLength = 30,
         dom = "t",
         ordering = FALSE,
         autoWidth = FALSE,

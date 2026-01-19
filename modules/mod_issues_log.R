@@ -60,6 +60,15 @@ mod_issues_log_ui <- function(id) {
       shiny::div(
         style = "padding-bottom: 0px;",
         shiny::uiOutput(ns("revalidate_btn"))
+      ),
+      shiny::div(
+        style = "padding-bottom: 0px;",
+        shiny::downloadButton(
+          ns("download_issues"),
+          label = "Download",
+          icon = shiny::icon("download"),
+          class = "btn-success"
+        )
       )
     ),
     # Summary badges
@@ -67,10 +76,12 @@ mod_issues_log_ui <- function(id) {
       class = "issues-summary mb-3",
       shiny::uiOutput(ns("summary"))
     ),
-    # Issues table
+    # Issues table with loading spinner
     shiny::div(
       class = "issues-table-container",
-      DT::dataTableOutput(ns("issues_table"))
+      shinycssloaders::withSpinner(
+        DT::dataTableOutput(ns("issues_table"))
+      )
     )
   )
 }
@@ -80,17 +91,25 @@ mod_issues_log_ui <- function(id) {
 #' @param validation_results Reactive validation results (reactive or reactiveVal)
 #' @param issue_status Reactive values for issue statuses
 #' @param is_revalidating Reactive indicating if re-validation is in progress
+#' @param upload_status Reactive indicating upload/validation status from upload module
 #' @return List with selected_issue reactive
-mod_issues_log_server <- function(id, validation_results, issue_status, is_revalidating = NULL) {
+mod_issues_log_server <- function(id, validation_results, issue_status, is_revalidating = NULL, upload_status = NULL) {
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
     
     # Selected issue for navigation
     selected_issue <- shiny::reactiveVal(NULL)
     
+    # Combined loading state - check both revalidation and upload status
+    is_loading <- shiny::reactive({
+      revalidating <- !is.null(is_revalidating) && is_revalidating()
+      uploading <- !is.null(upload_status) && upload_status() %in% c("uploading", "validating")
+      revalidating || uploading
+    })
+    
     # Render loading indicator
     output$loading_indicator <- shiny::renderUI({
-      if (!is.null(is_revalidating) && is_revalidating()) {
+      if (is_loading()) {
         shiny::span(
           class = "text-info",
           shiny::icon("spinner", class = "fa-spin me-1"),
@@ -103,15 +122,15 @@ mod_issues_log_server <- function(id, validation_results, issue_status, is_reval
     
     # Render re-validate button (can be disabled during validation)
     output$revalidate_btn <- shiny::renderUI({
-      is_loading <- !is.null(is_revalidating) && is_revalidating()
+      loading <- is_loading()
       
       shiny::actionButton(
         ns("btn_revalidate"),
-        label = if (is_loading) "Validating..." else "Re-validate",
-        icon = shiny::icon(if (is_loading) "spinner" else "refresh", 
-                          class = if (is_loading) "fa-spin" else NULL),
-        class = "btn-outline-primary",
-        disabled = if (is_loading) "disabled" else NULL
+        label = if (loading) "Validating..." else "Re-validate",
+        icon = shiny::icon(if (loading) "spinner" else "refresh", 
+                          class = if (loading) "fa-spin" else NULL),
+        class = "btn-primary",
+        disabled = if (loading) "disabled" else NULL
       )
     })
     
@@ -226,6 +245,11 @@ mod_issues_log_server <- function(id, validation_results, issue_status, is_reval
     
     # Render issues table
     output$issues_table <- DT::renderDataTable({
+      # Show spinner while loading (return NULL triggers withSpinner)
+      if (is_loading()) {
+        return(NULL)
+      }
+      
       issues <- filtered_issues()
       
       if (nrow(issues) == 0) {
@@ -313,6 +337,95 @@ mod_issues_log_server <- function(id, validation_results, issue_status, is_reval
     shiny::observeEvent(input$btn_revalidate, {
       revalidate_trigger(revalidate_trigger() + 1)
     })
+    
+    # Download issues as Excel
+    output$download_issues <- shiny::downloadHandler(
+      filename = function() {
+        paste0("xlsform_validation_issues_", Sys.Date(), ".xlsx")
+      },
+      content = function(file) {
+        issues <- filtered_issues()
+        
+        if (is.null(issues) || nrow(issues) == 0) {
+          # Create empty workbook with message
+          wb <- openxlsx::createWorkbook()
+          openxlsx::addWorksheet(wb, "Validation Issues")
+          openxlsx::writeData(wb, "Validation Issues", data.frame(Message = "No issues found"))
+          openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
+          return()
+        }
+        
+        # Prepare export data (without HTML formatting)
+        export_data <- issues |>
+          dplyr::select(id, level, source, sheet, row, field, message, status) |>
+          dplyr::mutate(
+            level = toupper(level),
+            source = ifelse(is.na(source), "-", source),
+            row = ifelse(is.na(row), "-", as.character(row)),
+            field = ifelse(is.na(field), "-", field),
+            sheet = ifelse(is.na(sheet), "-", sheet)
+          )
+        
+        names(export_data) <- c("ID", "Level", "Source", "Sheet", "Row", "Field", "Message", "Status")
+        
+        # Create workbook
+        wb <- openxlsx::createWorkbook()
+        openxlsx::addWorksheet(wb, "Validation Issues")
+        openxlsx::writeData(wb, "Validation Issues", export_data)
+        
+        # Define colors per level (Error=Red, Warning=Yellow, Info=Blue)
+        level_colors <- c(
+          "ERROR" = "#FFCDD2",
+          "WARNING" = "#FFF9C4",
+          "INFO" = "#BBDEFB"
+        )
+        
+        # Apply row styles based on level
+        for (level_name in names(level_colors)) {
+          rows <- which(export_data$Level == level_name) + 1  # +1 for header row
+          
+          if (length(rows) > 0) {
+            style <- openxlsx::createStyle(
+              fgFill = level_colors[[level_name]]
+            )
+            
+            openxlsx::addStyle(
+              wb,
+              sheet = "Validation Issues",
+              style = style,
+              rows = rows,
+              cols = 1:ncol(export_data),
+              gridExpand = TRUE,
+              stack = TRUE
+            )
+          }
+        }
+        
+        # Make header bold
+        header_style <- openxlsx::createStyle(
+          textDecoration = "bold",
+          fgFill = "#E9ECEF"
+        )
+        openxlsx::addStyle(
+          wb,
+          "Validation Issues",
+          style = header_style,
+          rows = 1,
+          cols = 1:ncol(export_data),
+          gridExpand = TRUE
+        )
+        
+        # Auto-width columns
+        openxlsx::setColWidths(
+          wb,
+          "Validation Issues",
+          cols = 1:ncol(export_data),
+          widths = "auto"
+        )
+        
+        openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
+      }
+    )
     
     # External trigger for selecting next issue (from cleaning panel Skip button)
     select_next_issue <- shiny::reactiveVal(0)
