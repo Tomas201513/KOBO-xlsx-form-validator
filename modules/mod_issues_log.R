@@ -285,29 +285,30 @@ mod_issues_log_server <- function(id, validation_results, issue_status, is_reval
           field = ifelse(is.na(field), "-", field),
           sheet = ifelse(is.na(sheet), "-", sheet)
         )
-      
-      DT::datatable(
-        display_data,
-        options = list(
-          pageLength = 10,
-          lengthMenu = c(5, 10, 25, 50),
-          dom = "lrtip",
-          order = list(list(0, "asc")),
-          columnDefs = list(
-            list(className = "dt-center", targets = c(0, 1, 2, 3, 4, 7)),
-            list(width = "50px", targets = 0),
-            list(width = "70px", targets = 1),
-            list(width = "70px", targets = 2),
-            list(width = "70px", targets = 3),
-            list(width = "50px", targets = 4),
-            list(width = "100px", targets = 5)
-          )
-        ),
-        selection = "single",
-        rownames = FALSE,
-        escape = FALSE,
-        colnames = c("ID", "Level", "Source", "Sheet", "Row", "Field", "Message", "Status")
-      )
+     
+DT::datatable(
+  display_data,
+  # filter = 'top',                 # ✅ Correct place
+  options = list(
+    pageLength = 10,
+    lengthMenu = c(5, 10, 25, 50),
+    order = list(list(0, "asc")),
+    columnDefs = list(
+      list(className = "dt-center", targets = c(0, 1, 2, 3, 4, 7)),
+      list(width = "50px", targets = 0),
+      list(width = "70px", targets = 1),
+      list(width = "70px", targets = 2),
+      list(width = "70px", targets = 3),
+      list(width = "50px", targets = 4),
+      list(width = "100px", targets = 5)
+    )
+  ),
+  selection = "single",
+  rownames = FALSE,
+  escape = FALSE,
+  colnames = c("ID", "Level", "Source", "Sheet", "Row", "Field", "Message", "Status")
+)
+
     })
     
     # Handle row selection

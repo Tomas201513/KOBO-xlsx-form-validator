@@ -15,6 +15,9 @@
 #' @param xlsform_data Rule context with survey and choices sheets
 #' @return tibble of validation issues
 check_choice_list_validation <- function(xlsform_data) {
+  
+  print("Running custom rule: choice_list_validation")
+  
   issues <- data.frame(
     id = integer(0), source = character(0), level = character(0),
     sheet = character(0), row = integer(0), field = character(0),
@@ -54,7 +57,6 @@ check_choice_list_validation <- function(xlsform_data) {
   
   # Get all defined choice lists
   defined_lists <- unique(choices$list_name[!is.na(choices$list_name) & choices$list_name != ""])
-  
   # Get all referenced choice lists from survey
   referenced_lists <- character(0)
   

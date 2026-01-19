@@ -96,6 +96,7 @@ check_cleaning_log <- function(
   
   choices_set <- unique(paste(choices_df$list_name, choices_df$name, sep = "|"))
   
+  
   allowed_change_types <- c(
     "change_response",
     "blank_response",
@@ -134,6 +135,8 @@ check_cleaning_log <- function(
       )
     }
     
+    
+    
     # ---- slash-style select_multiple ----
     if (!is.na(q) && grepl("/", q)) {
       
@@ -166,6 +169,9 @@ check_cleaning_log <- function(
     }
   }
   
+  
+  
+
   # ================================
   # 6. DUPLICATE & CONFLICT CHECKS
   # ================================
@@ -241,10 +247,10 @@ check_cleaning_log <- function(
                  sprintf("Value '%s' not in choices list '%s'.", nv, ln),
                  "CL_SELECT_ONE_BAD_CHOICE")
     }
-
+    
     if (bt == "select_multiple") {
       tokens <- unlist(strsplit(nv, " +"))
-
+      
       for (t in tokens) {
         if (!paste(ln, trimws(t), sep = "|") %in% choices_set) {
           append_log(cl_r, uuid, q, sprintf("Token '%s' not in choices list '%s'.", t, ln), "CL_SELECT_MULTIPLE_BAD_CHOICE")
