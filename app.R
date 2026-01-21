@@ -187,6 +187,8 @@ ui <- bslib::page_navbar(
             shiny::tags$code("question"),
             ", ",
             shiny::tags$code("change_type"),
+            ", ",
+            shiny::tags$code("old_value"),
             ", and ",
             shiny::tags$code("new_value"),
             "."
@@ -350,6 +352,79 @@ ui <- bslib::page_navbar(
       )
     )
   )
+  ##########################################################################################################################################
+#   
+#   ,
+#   # Main content panel
+#   bslib::nav_panel(
+#     title = "Geo Tools",
+#     icon = shiny::icon("globe"),
+# #   ),
+#     #   bslib::card_body(
+#     #     class = "py-2",
+#     #     mod_upload_ui("upload")
+#     #   )
+#     # ),
+#     
+#     # Main tabbed interface
+#     bslib::navset_card_tab(
+#       id = "main_tabs",
+#       
+#       # Issues Tab
+#       bslib::nav_panel(
+#         title = "XLS to KML",
+#         icon = shiny::icon("list-check"),
+#         value = "issues_tab",
+#         shiny::div(
+#           class = "tab-content-full",
+#           mod_issues_log_ui("issues")
+#         )
+#       )
+#       # ,
+#       
+#       # # Cleaning Tab
+#       # bslib::nav_panel(
+#       #   title = "Cleaning",
+#       #   icon = shiny::icon("broom"),
+#       #   value = "cleaning_tab",
+#       #   shiny::div(
+#       #     class = "tab-content-full cleaning-tab-content",
+#       #     bslib::layout_columns(
+#       #       col_widths = c(8, 4),
+#       #       # Cleaning panel (main)
+#       #       shiny::div(
+#       #         class = "cleaning-main",
+#       #         mod_cleaning_panel_ui("cleaning")
+#       #       ),
+#       #       # Export panel (sidebar)
+#       #       bslib::card(
+#       #         class = "export-sidebar-card",
+#       #         bslib::card_header(
+#       #           class = "py-2",
+#       #           shiny::icon("download"),
+#       #           " Export & Download"
+#       #         ),
+#       #         bslib::card_body(
+#       #           class = "p-3",
+#       #           mod_export_ui("export")
+#       #         )
+#       #       )
+#       #     )
+#       #   )
+#       # )
+#     )
+#   )    
+    # # Upload section - always visible at top
+    # bslib::card(
+    #   class = "upload-card mb-3",
+    #   bslib::card_header(
+    #     class = "d-flex justify-content-between align-items-center py-2",
+    #     shiny::tags$span(
+    #       shiny::icon("upload"),
+    #       "Upload XLSForm"
+    #     ),
+    #     shiny::uiOutput("config_status")
+    
   
   
 )

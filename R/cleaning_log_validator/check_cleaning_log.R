@@ -115,6 +115,20 @@ check_cleaning_log <- function(
     uuid <- cleaning_log_df[[cl_cols$uuid]][i]
     cl_r <- cleaning_log_df$cl_row[i]
     
+    if(!q %in% survey_df$name){
+      append_log(cl_r, uuid, q,
+                 sprintf("Question '%s' not found in survey.", q),
+                 "CL_QUESTION_NOT_IN_SURVEY")
+      next
+    }
+    
+    if(ct =="change_response" && (is.na(nv) || trimws(nv) == "")){
+      append_log(cl_r, uuid, q,
+                 sprintf("new_value cannot be blank for change_type 'change_response'." ),
+                 "CL_NEW_VALUE_BLANK")
+      next
+    }
+    
     # ---- change_type validity ----
     if (is.na(ct) || !ct %in% allowed_change_types) {
       append_log(
@@ -171,7 +185,7 @@ check_cleaning_log <- function(
   
   
   
-
+  
   # ================================
   # 6. DUPLICATE & CONFLICT CHECKS
   # ================================
